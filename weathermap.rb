@@ -2,12 +2,13 @@
 # Encoding.default_external = Encoding::UTF_8 
 
 # Ce script fait une connexion SNMP à un routeur.
-# Il initialise un tableu à deux éléments pour chaque port du routeur sélectionné dans le tableau @indexes.
+# Il initialise un tableau à deux éléments pour chaque port du routeur sélectionné dans le tableau @indexes.
 # Ces deux éléments seront des valeurs de mesure des octets in et out sur chaque port.
 # Le script est une boucle infinie qui, à intervalles réguliers refresh_rate (secondes), lance une collecte
 # des valeurs inOctects et outOctects sur la liste des ports du tableau @indexes et les stockes dans les tableaux @in et @out.
 # Il calcule après chaque collecte le delta avec la mesure précédente et le stocke dans un hash par index.
-# Ce hash est encodé en JSON est écrit dans un fichier publiable sur le web.
+# Chaque hash est inséré dans un tableau @ports, lui même associé à chaque @host du tableau @hosts
+# Ce tableau est encodé en JSON est écrit dans un fichier publiable sur le web.
 
 # Pour l'instant le script est en mode Quick&Dirty : utilisation de variables globales, appel des fonctions sans paramètres, etc.
 # À refactorer !
@@ -23,7 +24,10 @@ include SNMP
 IN_OCTETS_MIB = "1.3.6.1.2.1.2.2.1.10"
 OUT_OCTETS_MIB = "1.3.6.1.2.1.2.2.1.16" 
 
-# switch
+# équipements
+@hosts = Hash.new
+
+# 1 unique switch pour l'instant
 @host = '192.168.0.100'
 @community = 'comcacti'
 refresh_rate = 15
@@ -34,6 +38,7 @@ refresh_rate = 15
 	@oids.push(OUT_OCTETS_MIB+'.'+i) 
 	}
 @ports = []
+@hosts[@host] = @ports
 
 # ouverture de la connexion SNMP
 @manager = Manager.new(:host => @host, :version => :SNMPv2c, :community => @community) 
@@ -107,7 +112,7 @@ init_interfaces
 while true do
   get_snmp
   file_json = File.new(@file_json, "w")
-  file_json.write(JSON.generate(@ports))
+  file_json.write(JSON.generate(@hosts))
   file_json.close
   @ports.clear
   sleep(refresh_rate)
