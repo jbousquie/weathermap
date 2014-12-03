@@ -39,6 +39,7 @@ refresh_rate = 15
 	}
 @ports = []
 @hosts[@host] = @ports
+  # pour l'instant ...
 
 # ouverture de la connexion SNMP
 @manager = Manager.new(:host => @host, :version => :SNMPv2c, :community => @community) 
