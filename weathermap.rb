@@ -18,8 +18,8 @@ require 'json'
 require 'snmp'
 include SNMP
 
-@file_yaml = './weathermap.yml'
-@file_json = '/var/www/html/weathermap/weathermap.json'
+file_yaml = './weathermap.yml'
+file_json = '/var/www/html/weathermap/weathermap.json'
 
 
 #### Refactoring en classes
@@ -132,7 +132,7 @@ refresh_rate = 15
 
 
 # chargement du fichier de conf YAML 
-conf = YAML.load_file(@file_yaml)
+conf = YAML.load_file(file_yaml)
 conf.each_pair {|name, params|
   host = Host.new(name, params["ip"], params["indexes"])
   host.connect(:SNMPv2c, "comcacti")
@@ -144,7 +144,7 @@ while true do
   hosts.each{ |host|
     results[host.name] = host.get_snmp
   }
-  file_json = File.new(@file_json, "w")
+  file_json = File.new(file_json, "w")
   file_json.write(JSON.generate(results))
   file_json.close
   results.clear
