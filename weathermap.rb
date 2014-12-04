@@ -13,108 +13,140 @@
 # Pour l'instant le script est en mode Quick&Dirty : utilisation de variables globales, appel des fonctions sans paramètres, etc.
 # À refactorer !
 
+require 'yaml'
 require 'json'
 require 'snmp'
 include SNMP
 
-@file_conf = './weathermap.yml'
+@file_yaml = './weathermap.yml'
 @file_json = '/var/www/html/weathermap/weathermap.json'
 
-# OID IF-MIB::ifOutOctets et IF-MIB::ifInOctets
-IN_OCTETS_MIB = "1.3.6.1.2.1.2.2.1.10"
-OUT_OCTETS_MIB = "1.3.6.1.2.1.2.2.1.16" 
 
-# équipements
-@hosts = Hash.new
+#### Refactoring en classes
 
-# 1 unique switch pour l'instant
-@host = '192.168.0.100'
-@community = 'comcacti'
-refresh_rate = 15
-@indexes = ['10122', '10125', '10127', '10101', '10102']
-@oids = []
-@indexes.each { |i| 
-	@oids.push(IN_OCTETS_MIB+'.'+i) 
-	@oids.push(OUT_OCTETS_MIB+'.'+i) 
-	}
-@ports = []
-@hosts[@host] = @ports
-  # pour l'instant ...
+# classe Host :
+# représente un équipement à monitorer
+class Host
+    # variables de classe
+    @@in_octets_mib = "1.3.6.1.2.1.2.2.1.10"
+    @@out_octets_mib = "1.3.6.1.2.1.2.2.1.16"
 
-# ouverture de la connexion SNMP
-@manager = Manager.new(:host => @host, :version => :SNMPv2c, :community => @community) 
+    # la variable d'instance name est rendue lisible directement : host.name
+    attr_reader :name
 
-
-# fonction init_interfaces :
-# initialise un hash @in et un hash @out ayant pour clé chaque index d'interface (ports).
-# Ce hash contient un tableau à deux éléments contenant deux mesures successives inOctects et outOctets.
-# idem pour le hash ts (timestamp unix)
-def init_interfaces
-  @in = Hash.new
-  @out = Hash.new
-  @ts = Hash.new
-  @indexes.each do |idx|
-    @in[idx] = [0, 0]
-    @out[idx] = [0, 0]
-    @ts[idx] = [0, 0]
+  # constructeur : nom, adresse IP, tableau de ports à monitorer
+  def initialize(name, ip, ports)
+    @name = name
+    @host = ip.to_s
+    @indexes = ports
+    init_interfaces
   end
-end
 
+  # connexion SNMP : version (défaut v2c), communauté snnmp (défaut "public")
+  def connect(version=:SNMPv2c, community="public")
+    @manager = Manager.new(:host => @host, :version => version, :community => community)
+  end
 
-# function get_snmp : collecte des valeurs de trafic sur chaque interface
-def get_snmp
-  # var temporaire pour détecter le changement de valeur d'index dans la liste de résultats
-  tmp_index = ''
+  # function get_snmp : collecte des valeurs de trafic sur chaque interface.
+  # Cette fonction renvoie un tableau de mesures (hashes) sur chaque port.
+  def get_snmp
 
-  # requête SNMP get :
-  # la requête renvoie une ligne par index, cette ligne peut être in ou out,
-  # les lignes in et out de chaque index se suivent forcément.
-  response = @manager.get(@oids) 
-  response.each_varbind do |oid|
-    # récupération de la valeur de l'index sur la ligne de résultat : chaîne après le "."
-    index = oid.name.to_s.split('.')[1].to_s
-    if (tmp_index == index) then
-      # si le nom est le même que la ligne lue précédente, on vient donc de lire la 2° ligne => out
-      # on supprime le dernier élément du tableau @out et on y ajoute au début la mesure out.
-      # idem avec le timestamp de la mesure.
-      @out[index].shift
-      @out[index].push(oid.value.to_i)
-      @ts[index].shift
-      @ts[index].push(Time.now.to_i)
+    # onvide le tableau des résultats précédents
+    @deltas.clear
+    # var temporaire pour détecter le changement de valeur d'index dans la liste de résultats
+    tmp_index = ''
 
-      # calcul du delta in et out
-      out_delta = @out[index][1] - @out[index][0] 
-      in_delta = @in[index][1] - @in[index][0]
-      ts_delta = @ts[index][1] - @ts[index][0]
+    # requête SNMP get :
+    # la requête renvoie une ligne par index, cette ligne peut être in ou out,
+    # les lignes in et out de chaque index se suivent forcément.
+    response = @manager.get(@oids) 
+    response.each_varbind do |oid|
+      # récupération de la valeur de l'index sur la ligne de résultat : chaîne après le "."
+      index = oid.name.to_s.split('.')[1].to_s
+      if (tmp_index == index) then
+        # si le nom est le même que la ligne lue précédente, on vient donc de lire la 2° ligne => out
+        # on supprime le dernier élément du tableau @out et on y ajoute au début la mesure out.
+        # idem avec le timestamp de la mesure.
+        @out[index].shift
+        @out[index].push(oid.value.to_i)
+        @ts[index].shift
+        @ts[index].push(Time.now.to_i)
 
-      # création d'un hash de résultat de la mesure pour chaque index
-      # et ajout de ce hash dans le tableau @ports
-      port = { idx: index, dur: ts_delta, in_out: [in_delta, out_delta] }
-      @ports.push(port)
-    else
-      #  index == tmp_index, donc on lit la première ligne d'index => in
-      #  on supprime le dernier élément du tableau @in et on y ajoute au début la mesure in
-      @in[index].shift
-      @in[index].push(oid.value.to_i)
-      tmp_index = index
+        # calcul du delta in et out par intervalle de ts_delta
+        ts_delta = @ts[index][1] - @ts[index][0]
+        out_delta = (@out[index][1] - @out[index][0]) / ts_delta
+        in_delta = (@in[index][1] - @in[index][0]) / ts_delta
+        
+        # création d'un hash de résultat de la mesure pour chaque index
+        # et ajout de ce hash dans le tableau @ports
+        port_delta = { idx: index, in_out: [in_delta, out_delta] }
+        @deltas.push(port_delta)
+      else
+        #  index == tmp_index, donc on lit la première ligne d'index => in
+        #  on supprime le dernier élément du tableau @in et on y ajoute au début la mesure in
+        @in[index].shift
+        @in[index].push(oid.value.to_i)
+        tmp_index = index
+      end
     end
-  end 
-end
+    return @deltas 
+  end
 
+  # méthodes privées ##########################################
+  private
+  
+  # fonction init_interfaces :
+  # Initialise un tableau @delta pour stocker les deltas de mesure de chaque port.
+  # Initialise un hash @in et un hash @out ayant pour clé chaque index de port :
+  # ce hash contient un tableau contenant deux mesures successives de inOctects et de outOctets.
+  # Idem pour le hash ts (timestamp unix).
+  # Cette fonction génère de plus le tableau @oids des OID SNMP complets à requêter.
+  def init_interfaces
+    @deltas = []
+    @in = Hash.new
+    @out = Hash.new
+    @ts = Hash.new
+    @oids = []
+    @indexes.each do |idx|
+      @in[idx] = [0, 0]
+      @out[idx] = [0, 0]
+      @ts[idx] = [0, 0]
+      @oids.push(@@in_octets_mib+'.'+idx) 
+      @oids.push(@@out_octets_mib+'.'+idx) 
+    end
+  end
+
+end
 
 
 # Programme principal
 # ===================
 
-# création des tableaux de stockages des données
-init_interfaces
+# tableau des résultats de toutes les mesures de tous les équipements
+results = Hash.new
+# tableaux des objets Host
+hosts = []
 
+# délai de collecte général
+refresh_rate = 15
+
+
+# chargement du fichier de conf YAML 
+conf = YAML.load_file(@file_yaml)
+conf.each_pair {|name, params|
+  host = Host.new(name, params["ip"], params["indexes"])
+  host.connect(:SNMPv2c, "comcacti")
+  hosts.push(host)
+}
 # boucle de collecte
 while true do
-  get_snmp
+  # ici boucle sur tous les hosts de la conf à faire
+  hosts.each{ |host|
+    results[host.name] = host.get_snmp
+  }
   file_json = File.new(@file_json, "w")
-  file_json.write(JSON.generate(@hosts))
+  file_json.write(JSON.generate(results))
   file_json.close
-  @ports.clear
+  results.clear
   sleep(refresh_rate)
 end
