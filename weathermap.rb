@@ -17,7 +17,7 @@ require 'json'
 require 'snmp'
 include SNMP
 
-@file_conf = './weathermap.conf'
+@file_conf = './weathermap.yml'
 @file_json = '/var/www/html/weathermap/weathermap.json'
 
 # OID IF-MIB::ifOutOctets et IF-MIB::ifInOctets
