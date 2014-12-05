@@ -1,14 +1,40 @@
+# fichier YAML de déclaration des matériels à surveiller
+#
+# Indenter chaque niveau comme sur le modèle avec des espaces (tabulation interdite).
+# modèle :
+#
+# nom__equipement:
+#   ip: adresse_ip_de_connexion_snmp
+#   version: version_protocole_snmp (valeurs autorisées : SNMPv1 ou SNMPv2C)
+#   coord: [x, y, z] (position dans l'espace de l'équipement)
+#   label: [x, y, z] (position dans l'espace du libellé d'information)
+#   ifnames:          (liste de noms de port )
+#     nom_port1: nom_equipement_distant1_connecté_au_port1
+#     nom_port2: nom_equipement_distant2_connecté_au_port2
+#     etc
+#
+# Si l'équipement doit être représenté sur le graphe sans être monitoré (nœud terminal),
+# simplement ne pas mettre d'attibuts ip, version ni ifnames
+# exemple :
+#
+# nom__equipement:
+#   coord: 
+#   label: 
+#
+
+
 rtr-central:
   ip: 192.168.0.100
   community: comcacti
   version: SNMPv2c
   ifnames:
-    - Gi1/0/22
-    - Gi1/0/25
-    - Gi1/0/27
-    - Gi1/0/1
-    - Gi1/0/2
-
+    Gi1/0/22: swi-baie-serveur 
+    Gi1/0/25:
+    Gi1/0/27:
+    Gi1/0/1:
+    Gi1/0/2: 
+  coord: [100, 100, 100]
+  label: [100, 100, 100]
 
 
 swi-baie-serveur:
@@ -16,13 +42,15 @@ swi-baie-serveur:
   community: comcacti
   version: SNMPv2c
   ifnames: 
-    - Gi0/11
-    - Gi0/15
-    - Gi0/2
-    - Gi0/3
-    - Gi0/4
-    - Gi0/5
-    - Gi0/6
-    - Gi0/7
-    - Gi0/8
-    - Gi0/9
+    Gi0/11:
+    Gi0/15:
+    Gi0/2:
+    Gi0/3:
+    Gi0/4:
+    Gi0/5:
+    Gi0/6:
+    Gi0/7:
+    Gi0/8:
+    Gi0/9:
+  coord: [100, 100, 100]
+  label: [100, 100, 100]
