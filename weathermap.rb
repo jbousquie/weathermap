@@ -1,6 +1,8 @@
 # encoding: utf-8
 # Encoding.default_external = Encoding::UTF_8 
 
+ # Corriger le commentaire initial : plus Q&D, classe désormais !!!
+
 # Ce script fait une connexion SNMP à un routeur.
 # Il initialise un tableau à deux éléments pour chaque port du routeur sélectionné dans le tableau @indexes.
 # Ces deux éléments seront des valeurs de mesure des octets in et out sur chaque port.
@@ -10,8 +12,6 @@
 # Chaque hash est inséré dans un tableau @ports, lui même associé à chaque @host du tableau @hosts
 # Ce tableau est encodé en JSON est écrit dans un fichier publiable sur le web.
 
-# Pour l'instant le script est en mode Quick&Dirty : utilisation de variables globales, appel des fonctions sans paramètres, etc.
-# À refactorer !
 
 require 'yaml'
 require 'json'
@@ -28,24 +28,27 @@ file_json = '/var/www/html/weathermap/weathermap.json'
 # représente un équipement à monitorer
 class Host
     # variables de classe
+    @@oid_ifnames = "1.3.6.1.2.1.31.1.1.1.1"
+    @@oid_ifdescr = "1.3.6.1.2.1.2.2.1.2"
+    @@oid_ifspeed = "1.3.6.1.2.1.2.2.1.5"
     @@in_octets_mib = "1.3.6.1.2.1.2.2.1.10"
     @@out_octets_mib = "1.3.6.1.2.1.2.2.1.16"
 
     # la variable d'instance name est rendue lisible directement : host.name
     attr_reader :name
 
-  # constructeur : nom, adresse IP, tableau de ports à monitorer
-  def initialize(name, ip, ports)
+  # constructeur : nom, communauté snmp version protocole, adresse IP, tableau des noms de port à monitorer
+  def initialize(name, ip, community, version, port_names)
     @name = name
     @host = ip.to_s
-    @indexes = ports
+    @ports = port_names             # tableau des noms de ports provenant du fichier de configuration
+    @indexes = []                   # tableau des indexes d'interfaces de cet hôte
+    @interfaces = Hash.new          # hash des objets interfaces de cet hôte
+    connect(version, community)
     init_interfaces
   end
 
-  # connexion SNMP : version (défaut v2c), communauté snnmp (défaut "public")
-  def connect(version=:SNMPv2c, community="public")
-    @manager = Manager.new(:host => @host, :version => version, :community => community)
-  end
+
 
   # function get_snmp : collecte des valeurs de trafic sur chaque interface.
   # Cette fonction renvoie un tableau de mesures (hashes) sur chaque port.
@@ -95,6 +98,11 @@ class Host
   # méthodes privées ##########################################
   private
   
+  # connexion SNMP : version (défaut v2c), communauté snnmp (défaut "public")
+  def connect(version=:SNMPv2c, community="public")
+    @manager = Manager.new(:host => @host, :version => version, :community => community)
+  end
+  
   # fonction init_interfaces :
   # Initialise un tableau @delta pour stocker les deltas de mesure de chaque port.
   # Initialise un hash @in et un hash @out ayant pour clé chaque index de port :
@@ -102,6 +110,7 @@ class Host
   # Idem pour le hash ts (timestamp unix).
   # Cette fonction génère de plus le tableau @oids des OID SNMP complets à requêter.
   def init_interfaces
+    get_interfaces
     @deltas = []
     @in = Hash.new
     @out = Hash.new
@@ -116,6 +125,37 @@ class Host
     end
   end
 
+  # fonction get_interfaces :
+  # Effectue un snmp walk pour récuperer les index, les descriptions et les vitesses à partir
+  # des noms de ports du fichier de configuration.
+  # Stocke les indexes trouvés dans @indexes et les objets Interface correspondants dans @interfaces[index]
+  def get_interfaces
+    puts "\n#{@name} :"
+    @manager.walk([@@oid_ifnames, @@oid_ifdescr, @@oid_ifspeed]) do |ifname, ifdescr, ifspeed|
+      index = ifname.name.to_s.gsub("IF-MIB::ifName.","")
+      name = ifname.value
+      descr = ifdescr.value
+      speed = ifspeed.value
+      if @ports.include?(name)        # si l'interface fait partie des ports demandés dans la conf
+        then
+          @indexes.push(index)
+          @interfaces[index] = Interface.new(index, name, descr, speed)
+          puts "  got #{name}  index = #{index}   speed = #{speed}"
+      end
+    end
+  end
+
+end
+
+# object Interface
+class Interface
+  attr_reader :index, :name, :descr, :speed
+  def initialize(index, name, descr, speed)
+    @index = index
+    @name = name
+    @descr = descr
+    @speed = speed
+  end
 end
 
 
@@ -134,11 +174,15 @@ refresh_rate = 15
 # chargement du fichier de conf YAML 
 conf = YAML.load_file(file_yaml)
 conf.each_pair {|name, params|
-  host = Host.new(name, params["ip"], params["indexes"])
-  host.connect(:SNMPv2c, "comcacti")
+  ip = params["ip"]
+  community = params["community"]
+  protocol_version = params["version"].to_sym
+  ifnames = params["ifnames"]
+  host = Host.new(name, ip, community, protocol_version, ifnames)
   hosts.push(host)
 }
 # boucle de collecte
+puts "\nMonitoring started with refresh rate = #{refresh_rate} s"
 while true do
   # ici boucle sur tous les hosts de la conf à faire
   hosts.each{ |host|

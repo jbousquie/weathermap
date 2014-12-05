@@ -1,22 +1,28 @@
 rtr-central:
   ip: 192.168.0.100
-  indexes:
-    - "10122"
-    - "10125"
-    - "10127"
-    - "10101"
-    - "10102"
+  community: comcacti
+  version: SNMPv2c
+  ifnames:
+    - Gi1/0/22
+    - Gi1/0/25
+    - Gi1/0/27
+    - Gi1/0/1
+    - Gi1/0/2
+
+
 
 swi-baie-serveur:
   ip: 192.168.0.101
-  indexes: 
-    - "10111"
-    - "10115"
-    - "10102"
-    - "10103"
-    - "10104"
-    - "10105"
-    - "10106"
-    - "10107"
-    - "10108"
-    - "10109"
+  community: comcacti
+  version: SNMPv2c
+  ifnames: 
+    - Gi0/11
+    - Gi0/15
+    - Gi0/2
+    - Gi0/3
+    - Gi0/4
+    - Gi0/5
+    - Gi0/6
+    - Gi0/7
+    - Gi0/8
+    - Gi0/9
