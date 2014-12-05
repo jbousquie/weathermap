@@ -34,10 +34,10 @@ function afficheResultats() {
   for (var host in data) {
     txt = txt+host+'<br><ul>';
     for(var i=0; i<data[host].length; i++){
-      var idx = data[host][i]["idx"];
-      var inOct = data[host][i]["in_out"][0];
-      var outOct = data[host][i]["in_out"][1];
-      txt = txt+'<li>'+idx+' : in = '+inOct+' out = '+outOct+'</li>';
+      var name = data[host][i]["name"];
+      var inOct = data[host][i]["octInOut"][0];
+      var outOct = data[host][i]["octInOut"][1];
+      txt = txt+'<li>'+name+' : in = '+inOct+' out = '+outOct+'</li>';
     }
     txt = txt+'</ul>';
   }
@@ -47,10 +47,11 @@ function afficheResultats() {
 // fonction init lancée sur window.onload
 function init() {
   // variables de configuration
-  var json_data_url = "weathermap.json";            // url du fichier json
+  var json_data_url = "monitor.json";            // url du fichier json
   var refresh_rate = 10;                            // délai de rafraichissement en secondes
   
   div_content = document.querySelector('#content');
 
   monitor(json_data_url, refresh_rate);
+  display();
 }

@@ -18,8 +18,9 @@ require 'json'
 require 'snmp'
 include SNMP
 
-file_yaml = './weathermap.yml'
-file_json = '/var/www/html/weathermap/weathermap.json'
+file_conf_yaml = './weathermap.yml'
+file_monitor_json = '/var/www/html/weathermap/monitor.json'
+file_graph_json ='/var/www/html/weathermap/graph.json'
 
 
 #### Refactoring en classes
@@ -183,13 +184,15 @@ end
 results = Hash.new
 # tableaux des objets Host à monitorer
 hosts = []
+# tableau des objets à dessiner
+graph = []
 
 # délai de collecte général
 refresh_rate = 15
 
 
 # chargement du fichier de conf YAML 
-conf = YAML.load_file(file_yaml)
+conf = YAML.load_file(file_conf_yaml)
 conf.each_pair {|name, params|
   name = name.strip
   coord = params["coord"]
@@ -206,19 +209,26 @@ conf.each_pair {|name, params|
   end
   host = Host.new(name, coord, label, monitor, ip, community, protocol_version, ifnames)
   hosts.push(host)
+  graph_host = {name: name, coord: coord, label: label, ifnames: ifnames}
+  graph.push(graph_host)
 }
 
+# génération du fichier json du graphe
+file_graph = File.new(file_graph_json, "w")
+file_graph.write(JSON.generate(graph))
+file_graph.close
 
 # boucle de collecte
 puts "\nMonitoring started with refresh rate = #{refresh_rate} s"
 while true do
-  # ici boucle sur tous les hosts de la conf à faire
+  # boucle sur tous les hosts de la configuration
+  # on ne lance le get_snmp que sur host.monitor == true
   hosts.each{ |host|
     if host.monitor then
       results[host.name] = host.get_snmp
     end
   }
-  file_json = File.new(file_json, "w")
+  file_json = File.new(file_monitor_json, "w")
   file_json.write(JSON.generate(results))
   file_json.close
   results.clear
