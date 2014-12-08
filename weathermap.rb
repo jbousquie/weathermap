@@ -217,6 +217,7 @@ conf.each_pair {|name, params|
 file_graph = File.new(file_graph_json, "w")
 file_graph.write(JSON.generate(graph))
 file_graph.close
+puts "\nFile #{file_graph_json} generated"
 
 # boucle de collecte
 puts "\nMonitoring started with refresh rate = #{refresh_rate} s"

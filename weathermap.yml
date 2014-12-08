@@ -33,7 +33,7 @@ rtr-central:
     Gi1/0/27:
     Gi1/0/1:
     Gi1/0/2: 
-  coord: [100, 100, 100]
+  coord: [10, 10, 10]
   label: [100, 100, 100]
 
 
@@ -52,5 +52,5 @@ swi-baie-serveur:
     Gi0/7:
     Gi0/8:
     Gi0/9:
-  coord: [100, 100, 100]
+  coord: [-10, 2, 10]
   label: [100, 100, 100]
