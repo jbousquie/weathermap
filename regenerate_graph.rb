@@ -1,6 +1,9 @@
 # encoding: utf-8
 # Encoding.default_external = Encoding::UTF_8 
 
+# Ce script sert uniquement à re-générer le fichier du json graphe à partir de la conf yaml
+# Ceci est utile pour la mise au point du graphe dans l'espace : modification du yaml, regeneration graphe, aperçu browser
+
 require 'yaml'
 require 'json'
 
@@ -16,6 +19,7 @@ conf.each_pair {|name, params|
   name = name.strip
   coord = params["coord"]
   label = params["label"]
+  type = params["type"]
   monitor = false
   # si une adresse ip est configurée, on monitore
   if params.has_key?("ip") 
@@ -26,7 +30,7 @@ conf.each_pair {|name, params|
     # protocol_version = params["version"].to_sym
     ifnames = params["ifnames"]
   end
-  graph_host = {name: name, coord: coord, label: label, ifnames: ifnames}
+  graph_host = {name: name, coord: coord, label: label, type:type, ifnames: ifnames}
   graph.push(graph_host)
 }
 

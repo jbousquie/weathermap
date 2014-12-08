@@ -27,13 +27,14 @@ rtr-central:
   ip: 192.168.0.100
   community: comcacti
   version: SNMPv2c
+  type: router
   ifnames:
     Gi1/0/22: swi-baie-serveur 
     Gi1/0/25:
     Gi1/0/27:
     Gi1/0/1:
     Gi1/0/2: 
-  coord: [10, 10, 10]
+  coord: [10, 20, 10]
   label: [100, 100, 100]
 
 
@@ -41,6 +42,7 @@ swi-baie-serveur:
   ip: 192.168.0.101
   community: comcacti
   version: SNMPv2c
+  type: switch
   ifnames: 
     Gi0/11:
     Gi0/15:
@@ -52,5 +54,5 @@ swi-baie-serveur:
     Gi0/7:
     Gi0/8:
     Gi0/9:
-  coord: [-10, 2, 10]
+  coord: [0, 10, 10]
   label: [100, 100, 100]

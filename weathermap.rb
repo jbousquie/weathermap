@@ -197,6 +197,7 @@ conf.each_pair {|name, params|
   name = name.strip
   coord = params["coord"]
   label = params["label"]
+  type = params["type"]
   monitor = false
   # si une adresse ip est configurée, on monitore
   if params.has_key?("ip") 
@@ -209,7 +210,7 @@ conf.each_pair {|name, params|
   end
   host = Host.new(name, coord, label, monitor, ip, community, protocol_version, ifnames)
   hosts.push(host)
-  graph_host = {name: name, coord: coord, label: label, ifnames: ifnames}
+  graph_host = {name: name, coord: coord, label: label, type: type, ifnames: ifnames}
   graph.push(graph_host)
 }
 
