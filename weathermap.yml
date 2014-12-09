@@ -32,7 +32,7 @@ rtr-central:
   community: comcacti
   version: SNMPv2c
   type: router
-  coord: [10, 30, 10]
+  coord: [0, 50, 0]
   label: [100, 100, 100]
   ifnames:
     Gi1/0/22: fortigate 
@@ -42,13 +42,12 @@ rtr-central:
     Gi1/0/2: swi-a204-2
 
 
-
 swi-baie-serveur:
   ip: 192.168.0.101
   community: comcacti
   version: SNMPv2c
   type: switch
-  coord: [80, -10, 10]
+  coord: [150, 0, 10]
   label: [100, 100, 100]
   ifnames: 
     Gi0/11: swi-baie-3-3
@@ -68,7 +67,7 @@ swi-bata-cent:
   community: comcacti
   type: switch
   version: SNMPv2c
-  coord: [-60, -10, 10]
+  coord: [-150, 0, 10]
   label: [100, 100, 100]
   ifnames: 
     Gi1/0/6: swi-a300

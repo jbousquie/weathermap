@@ -10,5 +10,8 @@ file_graph_json: '/var/www/html/weathermap/graph.json'
 # période de rafraichissement de la collecte et de l'affichage en secondes
 refresh_rate: 15
 
-# [x, y, z] : pas par défaut de décalage des nœuds terminaux non déclarés
-default_step: [2, -30, 0]
+# [x, y, z] : angles par défaut en degrés  de décalage des nœuds terminaux non déclarés
+default_step: [-20, 20, 0]
+
+# rayon par défaut de placement des nœuds terminaux non déclarés
+default_radius: 200

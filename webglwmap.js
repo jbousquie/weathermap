@@ -59,7 +59,7 @@ function createLinks() {
     for (ifname in device_ifnames) {
         // si le ifname a une destination (not null)
       if ( device_ifnames[ifname] != null ) {
-        lk = new Link(ifname, devices[i], device_ifnames[ifname]);
+        lk = new Link(ifname, devices[i], getDeviceByName(device_ifnames[ifname]));
         links.push(lk);
       // si la destination == null, on passe au suivant => pas de lien
       }
