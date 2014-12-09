@@ -39,28 +39,34 @@ function createDevices() {
 }
 
 // fonction getDeviceByName()
-// retrouve un objet Device à partir de son nom
+// retrouve un objet Device à partir de son nom, retourne null sinon
 function getDeviceByName(name) {
   var i = 0;
   while(i < devices.length) {
     if (devices[i].name == name) { return devices[i]; }
     i++;
   }
+  return null;
 }
 
 // fonction createLinks()
 // crée tous les objets Link et les range dans le tableau links
 function createLinks() {
+  // boucle sur tous les devices
   for (var i=0; i<devices.length; i++) {
     var device_ifnames = devices[i].ifnames;
+    // boucle sur les ifnames du device
     for (ifname in device_ifnames) {
-      var dest_device = getDeviceByName(device_ifnames[ifname]);
-      lk = new Link(ifname, devices[i],dest_device);
-      links.push(lk);
+        // si le ifname a une destination (not null)
+      if ( device_ifnames[ifname] != null ) {
+        lk = new Link(ifname, devices[i], device_ifnames[ifname]);
+        links.push(lk);
+      // si la destination == null, on passe au suivant => pas de lien
+      }
     }
   }
-
 }
+
 
 // on met le rendu dans une fonction appelée par le init() général
 function displayGraph() {
@@ -112,11 +118,15 @@ function displayGraph() {
 
   // dessin des liens
   for ( var i=0; i<links.length; i++) {
-    // on ne dessine que les liens existants : destination != null
-    if (links[i].device_destination) {
       var origin = new THREE.Vector3(links[i].device_origin.x, links[i].device_origin.y, links[i].device_origin.z);
       var target = new THREE.Vector3(links[i].device_destination.x, links[i].device_destination.y, links[i].device_destination.z);
-      var curve = new THREE.SplineCurve3( [origin, target] ); 
+      var middle = new THREE.Vector3( (links[i].device_origin.x+links[i].device_destination.x)/2,
+                                      (links[i].device_origin.y+links[i].device_destination.y)/2 - 10,
+                                      (links[i].device_origin.z+links[i].device_destination.z)/2 );
+    //var curve = new THREE.SplineCurve3( [origin, target] ); 
+    //var curve = new THREE.LineCurve3( origin, target ); 
+      var curve = new THREE.QuadraticBezierCurve3(origin, middle, target ); 
+
       var linkGeometry = new THREE.TubeGeometry(curve);
 
       var linkMaterial = new THREE.MeshLambertMaterial();
@@ -125,7 +135,6 @@ function displayGraph() {
       var link = new THREE.Mesh(linkGeometry, linkMaterial);
 
       scene.add(link);
-    }
   }
 
   // boucle d'animation

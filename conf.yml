@@ -1,0 +1,14 @@
+# path du fichier de déclaration des équipements à grapher/monitorer
+file_devices_yaml: './weathermap.yml'
+
+# path du fichier des données de mesure, ce fichier doit être publiable par le serveur web
+file_monitor_json: '/var/www/html/weathermap/monitor.json'
+
+# path du fichier de description du graphe, ce fichier doit être publiable par le serveur web
+file_graph_json: '/var/www/html/weathermap/graph.json'
+
+# période de rafraichissement de la collecte et de l'affichage en secondes
+refresh_rate: 15
+
+# [x, y, z] : pas par défaut de décalage des nœuds terminaux non déclarés
+default_step: [2, -30, 0]

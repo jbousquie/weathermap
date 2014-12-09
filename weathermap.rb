@@ -18,9 +18,7 @@ require 'json'
 require 'snmp'
 include SNMP
 
-file_conf_yaml = './weathermap.yml'
-file_monitor_json = '/var/www/html/weathermap/monitor.json'
-file_graph_json ='/var/www/html/weathermap/graph.json'
+file_conf_yaml = './conf.yml'
 
 
 #### Refactoring en classes
@@ -36,7 +34,7 @@ class Host
     @@out_octets_mib = "1.3.6.1.2.1.2.2.1.16"
 
     # les variable d'instance name et monitor sont rendues lisibles directement
-    attr_reader :name, :monitor
+    attr_reader :name, :monitor, :coord, :label, :port_names
 
   # constructeur : nom, coordonées 3D, coord 3D label, monitor (boolean : à monitorer ?), 
   # ip, communauté snmp version protocole, adresse IP, tableau des noms de port à monitorer
@@ -141,7 +139,7 @@ class Host
   # des noms de ports du fichier de configuration.
   # Stocke les indexes trouvés dans @indexes et les objets Interface correspondants dans @interfaces[index]
   def get_interfaces
-    puts "\n#{@name} :"
+    puts "\n#{@name} : #{@host}"
     @manager.walk([@@oid_ifnames, @@oid_ifdescr, @@oid_ifspeed]) do |ifname, ifdescr, ifspeed|
       index = ifname.name.to_s.gsub("IF-MIB::ifName.","")
       name = ifname.value.to_s
@@ -187,21 +185,27 @@ hosts = []
 # tableau des objets à dessiner
 graph = []
 
-# délai de collecte général
-refresh_rate = 15
 
+# === code commun avec regenerate_graph.rb (début) =====
+
+
+# chargement de la configuration YAML
+conf = YAML.load_file(file_conf_yaml)
+file_devices_yaml = conf["file_devices_yaml"]
+file_graph_json = conf["file_graph_json"]
+refresh_rate = conf["refresh_rate"]
+default_step = conf["default_step"]
 
 # chargement du fichier de conf YAML 
-conf = YAML.load_file(file_conf_yaml)
-conf.each_pair {|name, params|
+conf_devices = YAML.load_file(file_devices_yaml)
+conf_devices.each_pair {|name, params|
   name = name.strip
   coord = params["coord"]
   label = params["label"]
   type = params["type"]
   monitor = false
   # si une adresse ip est configurée, on monitore
-  if params.has_key?("ip") 
-    then 
+  if params.has_key?("ip") then 
     monitor = true
     ip = params["ip"].strip
     community = params["community"].strip
@@ -214,13 +218,49 @@ conf.each_pair {|name, params|
   graph.push(graph_host)
 }
 
+# recherche des nœuds terminaux
+# pour chaque destination de port_name, on cherche si elle existe déjà dans hosts
+# et on l'ajoute comme nœud par défaut dans graph sinon
+hosts.each{ |host|
+  if host.monitor then
+    nb_children = 1
+    host.port_names.each_value{ |dest| 
+      if (not dest.nil?) then
+        terminal_node = true
+        hosts.each{ |h| 
+          if (dest == h.name) then 
+            terminal_node = false 
+          end
+        }
+        if terminal_node then
+          step_x = default_step[0] * nb_children
+          step_y = default_step[1] * nb_children
+          step_z = default_step[2] * nb_children
+          default_coord = [host.coord[0]+step_x, host.coord[1]+step_y, host.coord[2]+step_z]
+          default_label = [host.label[0]+step_x, host.label[1]+step_y, host.label[2]+step_z]
+          graph_host_default = {name: dest, coord: default_coord, label: default_label, type: "default", ifnames: nil}
+          graph.push(graph_host_default)
+          nb_children += 1
+        end
+        terminal_node = true
+      end
+    }
+  end
+}
+
+# faire une détection de boucle ici
+#
+
 # génération du fichier json du graphe
 file_graph = File.new(file_graph_json, "w")
 file_graph.write(JSON.generate(graph))
 file_graph.close
 puts "\nFile #{file_graph_json} generated"
 
-# boucle de collecte
+# === code commun avec regenerate_graph.rb (fin) =====
+
+
+# boucle de collecte SNMP
 puts "\nMonitoring started with refresh rate = #{refresh_rate} s"
 while true do
   # boucle sur tous les hosts de la configuration

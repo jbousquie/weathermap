@@ -12,6 +12,7 @@
 #     nom_port1: nom_equipement_distant1_connecté_au_port1
 #     nom_port2: nom_equipement_distant2_connecté_au_port2
 #     etc
+#  ou nom_portx : (vide) => le port sera monitoré, mais aucun lien créé
 #
 # Si l'équipement doit être représenté sur le graphe sans être monitoré (nœud terminal),
 # simplement ne pas mettre d'attibuts ip, version ni ifnames
@@ -21,21 +22,25 @@
 #   coord: 
 #   label: 
 #
-
+# A contrario, si ip est spécifié, il faut impérativement déclarer des valeurs de 
+# community, version et au moins une entrée de ifnames.
+# Note : les nœuds de destination non explicitement déclarés seront quand même
+# représentés dans le graphe mais placés automatiquement par rapport à leur nœud parent.
 
 rtr-central:
   ip: 192.168.0.100
   community: comcacti
   version: SNMPv2c
   type: router
-  ifnames:
-    Gi1/0/22: swi-baie-serveur 
-    Gi1/0/25:
-    Gi1/0/27:
-    Gi1/0/1:
-    Gi1/0/2: 
-  coord: [10, 20, 10]
+  coord: [10, 30, 10]
   label: [100, 100, 100]
+  ifnames:
+    Gi1/0/22: fortigate 
+    Gi1/0/25: swi-bata-cent
+    Gi1/0/27: swi-batc-2-1
+    Gi1/0/1: swi-baie-serveur
+    Gi1/0/2: swi-a204-2
+
 
 
 swi-baie-serveur:
@@ -43,16 +48,39 @@ swi-baie-serveur:
   community: comcacti
   version: SNMPv2c
   type: switch
-  ifnames: 
-    Gi0/11:
-    Gi0/15:
-    Gi0/2:
-    Gi0/3:
-    Gi0/4:
-    Gi0/5:
-    Gi0/6:
-    Gi0/7:
-    Gi0/8:
-    Gi0/9:
-  coord: [0, 10, 10]
+  coord: [80, -10, 10]
   label: [100, 100, 100]
+  ifnames: 
+    Gi0/11: swi-baie-3-3
+    Gi0/15: swi-ndv
+    Gi0/2: swi-baie-0-2
+    Gi0/3: swi-baie-1-1
+    Gi0/4: swi-baie-1-2
+    Gi0/5: swi-baie-1-3
+    Gi0/6: swi-baie-2-1
+    Gi0/7: swi-baie-2-2
+    Gi0/8: swi-baie-2-3
+    Gi0/9: swi-baie-3-1
+
+
+swi-bata-cent:
+  ip: 10.7.0.239
+  community: comcacti
+  type: switch
+  version: SNMPv2c
+  coord: [-60, -10, 10]
+  label: [100, 100, 100]
+  ifnames: 
+    Gi1/0/6: swi-a300
+    Gi1/0/11: swi-a102
+    Gi1/0/21: swi-a20-1
+    Gi1/0/12: swi-a205-2
+    Gi1/0/8: swi-a200-1
+    Gi1/0/7: swi-a200-2
+    Gi1/0/1: swi-admin
+    Gi1/0/25: swi-batb-toip
+    Gi1/0/3: swi-a20-1
+    Gi1/0/21: swi-a20-2
+
+
+
