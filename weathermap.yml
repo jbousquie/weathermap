@@ -33,7 +33,7 @@ rtr-central:
   version: SNMPv2c
   type: router
   coord: [0, 50, 0]
-  label: [100, 100, 100]
+  label: [0, 70, 10]
   ifnames:
     Gi1/0/22: fortigate 
     Gi1/0/25: swi-bata-cent
@@ -48,7 +48,7 @@ swi-baie-serveur:
   version: SNMPv2c
   type: switch
   coord: [150, 0, 10]
-  label: [100, 100, 100]
+  label: [150, 20, 20]
   ifnames: 
     Gi0/11: swi-baie-3-3
     Gi0/15: swi-ndv
@@ -68,7 +68,7 @@ swi-bata-cent:
   type: switch
   version: SNMPv2c
   coord: [-150, 0, 10]
-  label: [100, 100, 100]
+  label: [-150, 20, 20]
   ifnames: 
     Gi1/0/6: swi-a300
     Gi1/0/11: swi-a102
