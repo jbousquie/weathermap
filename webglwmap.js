@@ -77,7 +77,7 @@ function displayGraph() {
 
   // initialisation de la scène et du renderer
   var scene = new THREE.Scene();
-  var camera = new THREE.PerspectiveCamera(45, window.innerWidth /window.innerHeight, 0.1, 1000);
+  var camera = new THREE.PerspectiveCamera(45, window.innerWidth /window.innerHeight, 0.1, 5000);
   var renderer = new THREE.WebGLRenderer();
   renderer.setClearColor(0xFEFEFE, 0.9);
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -117,24 +117,43 @@ function displayGraph() {
   }
 
   // dessin des liens
+  var linkRadius = 1.5;
   for ( var i=0; i<links.length; i++) {
-      var origin = new THREE.Vector3(links[i].device_origin.x, links[i].device_origin.y, links[i].device_origin.z);
-      var target = new THREE.Vector3(links[i].device_destination.x, links[i].device_destination.y, links[i].device_destination.z);
-      var middle = new THREE.Vector3( (links[i].device_origin.x+links[i].device_destination.x)/2,
+      var originIn = new THREE.Vector3(links[i].device_origin.x-linkRadius, links[i].device_origin.y, links[i].device_origin.z);
+      var targetIn = new THREE.Vector3(links[i].device_destination.x-linkRadius, links[i].device_destination.y, links[i].device_destination.z);
+      var middleIn = new THREE.Vector3( (links[i].device_origin.x-linkRadius+links[i].device_destination.x)/2,
+                                      (links[i].device_origin.y+links[i].device_destination.y)/2 - 10,
+                                      (links[i].device_origin.z+links[i].device_destination.z)/2 );
+      var originOut = new THREE.Vector3(links[i].device_origin.x+linkRadius, links[i].device_origin.y, links[i].device_origin.z);
+      var targetOut = new THREE.Vector3(links[i].device_destination.x+linkRadius, links[i].device_destination.y, links[i].device_destination.z);
+      var middleOut = new THREE.Vector3( (links[i].device_origin.x+linkRadius+links[i].device_destination.x)/2,
                                       (links[i].device_origin.y+links[i].device_destination.y)/2 - 10,
                                       (links[i].device_origin.z+links[i].device_destination.z)/2 );
     //var curve = new THREE.SplineCurve3( [origin, target] ); 
     //var curve = new THREE.LineCurve3( origin, target ); 
-      var curve = new THREE.QuadraticBezierCurve3(origin, middle, target ); 
+      var curveIn = new THREE.QuadraticBezierCurve3(originIn, middleIn, targetIn ); 
+      var curveOut = new THREE.QuadraticBezierCurve3(originOut, middleOut, targetOut ); 
 
-      var linkGeometry = new THREE.TubeGeometry(curve);
 
-      var linkMaterial = new THREE.MeshLambertMaterial();
-      //linkMaterial.color.setRGB(0.2,0.2,.9);
-      linkMaterial.ambient.setRGB(0,0,1);
-      var link = new THREE.Mesh(linkGeometry, linkMaterial);
+      var linkGeometryIn = new THREE.TubeGeometry(curveIn,64,linkRadius);
+      var linkGeometryOut = new THREE.TubeGeometry(curveOut,64,linkRadius);
 
-      scene.add(link);
+
+      var linkMaterialIn = new THREE.MeshLambertMaterial();
+      linkMaterialIn.ambient.setRGB(0,0,1);
+      linkMaterialIn.transparent = true;
+      linkMaterialIn.opacity = .4;
+      var linkIn = new THREE.Mesh(linkGeometryIn, linkMaterialIn);
+
+      var linkMaterialOut = new THREE.MeshLambertMaterial();
+      linkMaterialOut.ambient.setRGB(1,0,0);
+      linkMaterialOut.transparent = true;
+      linkMaterialOut.opacity = .4;
+      var linkOut = new THREE.Mesh(linkGeometryOut, linkMaterialOut);
+
+      scene.add(linkIn);
+      scene.add(linkOut);
+
   }
 
   // boucle d'animation

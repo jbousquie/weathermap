@@ -1,17 +1,42 @@
+# FICHIERS
+# ========
+
 # path du fichier de déclaration des équipements à grapher/monitorer
+# file_devices_yaml: './weathermap.yml'
 file_devices_yaml: './weathermap.yml'
 
 # path du fichier des données de mesure, ce fichier doit être publiable par le serveur web
+# file_monitor_json: '/var/www/html/weathermap/monitor.json'
 file_monitor_json: '/var/www/html/weathermap/monitor.json'
 
 # path du fichier de description du graphe, ce fichier doit être publiable par le serveur web
+# file_graph_json: '/var/www/html/weathermap/graph.json'
 file_graph_json: '/var/www/html/weathermap/graph.json'
+
+
+# GRAPHE
+# ======
+
+# [θxy, θxz, θyz] : angles par défaut en degrés de décalage (le pas) des nœuds terminaux non déclarés
+# pour chaque plan : θxy = pas dans le plan xOy, θxz = pas dans le plan xOz, θyz = pas dans le plan yOz
+default_step: [20, 0, 0]
+
+# rayon par défaut de placement des nœuds terminaux non déclarés autour de leur nœud père
+default_radius: 250
+
+# vecteur par défaut : dans quelle direction éclater les nœeuds terminaux d'un nœud donné s'il n'a pas de parent
+# exemple : vers le  bas
+# default_vector: [0, -1, 0]
+# note importante : une valeur à zéro dans vector peut empêcher la représentation des devices selon le(s) plan(s) choisi(s) dans default_step
+default_vector: [0, -1, 0]
+
+
+# SNMP et AFFICHAGE
+# =================
+
+# coordonnées initiales de la caméra, note : la caméra regarde en direction de l'origine [0, 0, 0]
+# cam_coord = [10, 5, 300]
+cam_coord: [10, 5, 300]
 
 # période de rafraichissement de la collecte et de l'affichage en secondes
 refresh_rate: 15
-
-# [x, y, z] : angles par défaut en degrés  de décalage des nœuds terminaux non déclarés
-default_step: [-20, 20, 0]
-
-# rayon par défaut de placement des nœuds terminaux non déclarés
-default_radius: 200

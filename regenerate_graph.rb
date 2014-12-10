@@ -11,22 +11,47 @@ require 'json'
 
 file_conf_yaml = './conf.yml'
 
-# chargement de la configuration YAML
-conf = YAML.load_file(file_conf_yaml)
-file_devices_yaml = conf["file_devices_yaml"]
-file_graph_json = conf["file_graph_json"]
-refresh_rate = conf["refresh_rate"]
-default_shift = conf["default_shift"]
-default_step = conf["default_step"]
 
+# tableaux des objets Host à monitorer
+hosts = []
 # tableau des objets à dessiner
 graph = []
-hosts = []
+
+# classe Host :
+# représente un équipement à monitorer
+class Host
+    # variables de classe
+    @@oid_ifnames = "1.3.6.1.2.1.31.1.1.1.1"
+    @@oid_ifdescr = "1.3.6.1.2.1.2.2.1.2"
+    @@oid_ifspeed = "1.3.6.1.2.1.2.2.1.5"
+    @@in_octets_mib = "1.3.6.1.2.1.2.2.1.10"
+    @@out_octets_mib = "1.3.6.1.2.1.2.2.1.16"
+
+    # les variable d'instance name et monitor sont rendues lisibles directement
+    attr_reader :name, :monitor, :coord, :label, :port_names
+
+  # constructeur : nom, coordonées 3D, coord 3D label, monitor (boolean : à monitorer ?), 
+  # ip, communauté snmp version protocole, adresse IP, tableau des noms de port à monitorer
+  def initialize(name, coord, label, monitor, ip=nil, community=nil, version=nil, port_names=nil)
+    @name = name
+    @coord = coord
+    @label = label
+    @monitor = monitor
+    if monitor then
+      @host = ip.to_s
+      @port_names = port_names        # hash des {noms de ports => destination} provenant du fichier de configuration
+      @indexes = []                   # tableau des indexes d'interfaces de cet hôte
+      @interfaces = Hash.new          # hash des objets interfaces de cet hôte
+    end
+  end
+end
+
+# ==== code copié depuis weathermap.rb à partir d'ici =============
 
 # fonction getHostByName
 # renvoie un objet du graph par son nom, nil si non trouvé
 def getHostByName(graph, name) 
-  graph.each{ |hst| if hst[:name] == name then return hst end  }
+  graph.each{ |host| if host[:name] == name then return host end  }
   return nil
 end
 
@@ -38,11 +63,14 @@ file_monitor_json = conf["file_monitor_json"]
 refresh_rate = conf["refresh_rate"]
 default_step = conf["default_step"]
 default_radius = conf["default_radius"]
+default_vector = conf["default_vector"]
+cam_coord = conf["cam_coord"]
 puts "\nApplication configuration file #{file_conf_yaml} loaded"
 
 # chargement du fichier des devices YAML 
 conf_devices = YAML.load_file(file_devices_yaml)
 puts "\nDevice file #{file_devices_yaml} loaded"
+puts "\nScanning devices ..."
 conf_devices.each_pair {|name, params|
   name = name.strip
   coord = params["coord"]
@@ -57,50 +85,47 @@ conf_devices.each_pair {|name, params|
     protocol_version = params["version"].to_sym
     ifnames = params["ifnames"]
   end
-  host = {name: name, coord: coord, label: label, monitor: monitor, ip: ip, community: community, protocol_version: protocol_version, port_names: ifnames}
+  host = Host.new(name, coord, label, monitor, ip, community, protocol_version, ifnames)
   hosts.push(host)
-  graph_host = {name: name, coord: coord, label: label, type: type, ifnames: ifnames, parent: nil, vector: [0,0,0]}
+  graph_host = {name: name, coord: coord, label: label, type: type, ifnames: ifnames, parent: nil, vector: default_vector}
   graph.push(graph_host)
 }
-
 
 # recherche des nœuds terminaux
 # pour chaque destination de port_name, on cherche si elle existe déjà dans hosts
 # et on l'ajoute comme nœud par défaut dans graph sinon
 hosts.each{ |host|
-  if host[:monitor] then
-    nb_children = 1
-    fact = 1
-    host[:port_names].each_value{ |dest| 
+  if host.monitor then
+    fact = 0
+    host.port_names.each_value{ |dest|  
       # on ne s'occupe que des ifaces qui ont une destination   
-      if (not dest.nil?) then
+      if (not dest.nil?) then      
         terminal_node = true
         host_dest = getHostByName(graph, dest)
         # si la destination est déjà dans le graphe, on met à jour le parent et on calcule le vecteur
         if host_dest then
-          host_dest[:parent] = host[:name]
-          vx = host_dest[:coord][0] - host[:coord][0]
-          vy = host_dest[:coord][1] - host[:coord][1]
-          vz = host_dest[:coord][2] - host[:coord][2]
+          host_dest[:parent] = host.name
+          vx = host_dest[:coord][0] - host.coord[0]
+          vy = host_dest[:coord][1] - host.coord[1]
+          vz = host_dest[:coord][2] - host.coord[2]
           host_dest[:vector] = [vx, vy, vz]
           terminal_node = false
         end
         # si le nœeud est terminal, on cherche son parent pour lui affecter ses :parent et :vector
         # et pour calculer ses coordonnées à partir du vecteur du parent et de sa positon de nœeud fils
         if terminal_node then
-          parent_node = getHostByName(graph, host[:name])
+          parent_node = getHostByName(graph, host.name)
           vct = parent_node[:vector]
           magnitude = Math.sqrt(vct[0]*vct[0]+vct[1]*vct[1]+vct[2]*vct[2])
           if magnitude == 0 then magnitude = 1 end
-          step_x = default_radius/magnitude*vct[0] * Math::cos(Math::PI/180*default_step[0]*(fact-1)) 
-          step_y = default_radius/magnitude*vct[1] * Math::sin(Math::PI/180*default_step[0]*(fact-1)) 
-          step_z = default_radius/magnitude*vct[2] * Math::sin(Math::PI/180*default_step[0]*(fact-1))
-          default_coord = [host[:coord][0]+step_x, host[:coord][1]+step_y, host[:coord][2]+step_z]
-          default_label = [host[:label][0]+step_x, host[:label][1]+step_y, host[:label][2]+step_z]
+          step_x = default_radius/magnitude*vct[0] * Math::cos(Math::PI/180*default_step[0]*fact) * Math::cos(Math::PI/180*default_step[1]*fact)
+          step_y = default_radius/magnitude*vct[1] * Math::sin(Math::PI/180*default_step[0]*fact) * Math::cos(Math::PI/180*default_step[2]*fact)
+          step_z = default_radius/magnitude*vct[2] * Math::sin(Math::PI/180*default_step[1]*fact) * Math::sin(Math::PI/180*default_step[2]*fact)
+          default_coord = [host.coord[0]+step_x, host.coord[1]+step_y, host.coord[2]+step_z]
+          default_label = [host.label[0]+step_x, host.label[1]+step_y, host.label[2]+step_z]
           graph_host_default = {name: dest, coord: default_coord, label: default_label, type: "default", ifnames: nil, parent: parent_node[:name], vector: nil}
           graph.push(graph_host_default)
-          nb_children += 1
-          if fact.abs != fact then fact = fact.abs + 1 else fact = -fact end
+          if fact > 0 then fact = -fact elsif fact < 0 then fact = -fact+1 else fact = 1 end
         end
         terminal_node = true
       end
@@ -108,7 +133,7 @@ hosts.each{ |host|
   end
 }
 
-# faire une détection de boucle ici
+# ajouter une détection de boucles dans le graphe ici
 #
 
 # génération du fichier json du graphe
