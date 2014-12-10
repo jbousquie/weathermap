@@ -7,7 +7,7 @@
 #   ip: adresse_ip_de_connexion_snmp
 #   version: version_protocole_snmp (valeurs autorisées : SNMPv1 ou SNMPv2C)
 #   coord: [x, y, z] (position dans l'espace de l'équipement)
-#   label: [x, y, z] (position dans l'espace du libellé d'information)
+#   label: [x, y, z] (position dans l'espace du libellé d'information, optionnel)
 #   ifnames:          (liste de noms de port )
 #     nom_port1: nom_equipement_distant1_connecté_au_port1
 #     nom_port2: nom_equipement_distant2_connecté_au_port2
@@ -47,7 +47,7 @@ swi-baie-serveur:
   community: comcacti
   version: SNMPv2c
   type: switch
-  coord: [150, 0, 10]
+  coord: [150, 0, 0]
   label: [150, 0, 40]
   ifnames: 
     Gi0/11: swi-baie-3-3
@@ -67,7 +67,7 @@ swi-bata-cent:
   community: comcacti
   type: switch
   version: SNMPv2c
-  coord: [-150, 0, 10]
+  coord: [-150, 0, 0]
   label: [-150, 0, 40]
   ifnames: 
     Gi1/0/6: swi-a300
@@ -80,6 +80,24 @@ swi-bata-cent:
     Gi1/0/25: swi-batb-toip
     Gi1/0/3: swi-a20-1
     Gi1/0/21: swi-a20-2
+
+swi-batb-toip:
+  ip: 192.168.0.252
+  community: comcacti
+  type: switch
+  version: SNMPv2c
+  coord: [-120, 80, 0]
+  ifnames:
+    Gi0/15: swi-b502
+    Gi0/18: swi-batb
+    Gi0/1: swi-batb-cent
+    Gi0/13: swi-b501-1
+
+
+# non monitorés
+fortigate:
+  coord: [0, 150, 0]
+  type: firewall
 
 
 

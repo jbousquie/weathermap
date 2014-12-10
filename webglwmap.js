@@ -128,9 +128,9 @@ function displayGraph() {
   renderer.shadowMapEnabled = true;
   document.querySelector('#WebGL').appendChild(renderer.domElement);
 
-  camera.position.x = 10;
-  camera.position.y = 5;
-  camera.position.z = 300;
+  camera.position.x = 0;
+  camera.position.y = 10;
+  camera.position.z = 600;
   camera.lookAt(scene.position);
 
   var  axes = new THREE.AxisHelper(20);
@@ -152,6 +152,8 @@ function displayGraph() {
     var deviceMaterial = new THREE.MeshLambertMaterial();
     //deviceMaterial.color.setRGB(.7,.5,.5);
     deviceMaterial.ambient.setRGB(.5,.5,.5);
+    deviceMaterial.transparent = true;
+    deviceMaterial.opacity = .9;
 
     var device = new THREE.Mesh(deviceGeometry, deviceMaterial);
     device.position.x = devices[i].x;

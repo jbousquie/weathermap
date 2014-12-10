@@ -1,17 +1,14 @@
 # encoding: utf-8
 # Encoding.default_external = Encoding::UTF_8 
 
- # Corriger le commentaire initial : plus Q&D, classe désormais !!!
-
-# Ce script fait une connexion SNMP à un routeur.
-# Il initialise un tableau à deux éléments pour chaque port du routeur sélectionné dans le tableau @indexes.
-# Ces deux éléments seront des valeurs de mesure des octets in et out sur chaque port.
-# Le script est une boucle infinie qui, à intervalles réguliers refresh_rate (secondes), lance une collecte
-# des valeurs inOctects et outOctects sur la liste des ports du tableau @indexes et les stockes dans les tableaux @in et @out.
-# Il calcule après chaque collecte le delta avec la mesure précédente et le stocke dans un hash par index.
-# Chaque hash est inséré dans un tableau @port_names, lui même associé à chaque @host du tableau @hosts
-# Ce tableau est encodé en JSON est écrit dans un fichier publiable sur le web.
-
+# Weathermap.rb
+#
+# Ce script lit le fichier de description des équipements.
+# Il produit un tableau hosts d'équipement à monitorer (ceux qui ont une adresse ip) et un tableau graph d'équipements à dessiner qui peuvent être plus nombreux.
+# Le tableau des équipements à dessiner est écrit dans un fichier JSON publié par le serveur web pour le client.
+# Une boucle infinie procède ensuite à intervalle régulier refresh_rate à la collecte des données SNMP sur tous les équipements à monitorer.
+# Seules deux mesures consécutives sont conservées pour calculer des différences (inOctects par exemple).
+# Une fois le calcul effectué pour chaque équipement, les résultats sont écrits dans un fichier JSON publié par le serveur web que le client pourra lire.
 
 require 'yaml'
 require 'json'
@@ -52,8 +49,6 @@ class Host
       init_interfaces
     end
   end
-
-
 
   # function get_snmp : collecte des valeurs de trafic sur chaque interface.
   # Cette fonction renvoie un tableau de mesures (hashes) sur chaque port.
@@ -102,7 +97,6 @@ class Host
     end
     return @deltas 
   end
-
 
   # méthodes privées ##########################################
   private
@@ -155,7 +149,6 @@ class Host
       end
     end
   end
-
 end
 
 
@@ -186,6 +179,7 @@ hosts = []
 graph = []
 
 
+# ======================================================
 # === code commun avec regenerate_graph.rb (début) =====
 
 # fonction getHostByName
@@ -227,6 +221,7 @@ conf_devices.each_pair {|name, params|
     ifnames = params["ifnames"]
   end
   if label.nil? then
+    label = []
     label[0] = coord[0] + default_label_shift[0]
     label[1] = coord[1] + default_label_shift[1]
     label[2] = coord[2] + default_label_shift[2]

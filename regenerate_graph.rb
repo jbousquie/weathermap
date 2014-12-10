@@ -87,6 +87,7 @@ conf_devices.each_pair {|name, params|
     ifnames = params["ifnames"]
   end
   if label.nil? then
+    label = []
     label[0] = coord[0] + default_label_shift[0]
     label[1] = coord[1] + default_label_shift[1]
     label[2] = coord[2] + default_label_shift[2]
