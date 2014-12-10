@@ -204,6 +204,7 @@ refresh_rate = conf["refresh_rate"]
 default_step = conf["default_step"]
 default_radius = conf["default_radius"]
 default_vector = conf["default_vector"]
+default_label_shift = conf["default_label_shift"]
 cam_coord = conf["cam_coord"]
 puts "\nApplication configuration file #{file_conf_yaml} loaded"
 
@@ -224,6 +225,11 @@ conf_devices.each_pair {|name, params|
     community = params["community"].strip
     protocol_version = params["version"].to_sym
     ifnames = params["ifnames"]
+  end
+  if label.nil? then
+    label[0] = coord[0] + default_label_shift[0]
+    label[1] = coord[1] + default_label_shift[1]
+    label[2] = coord[2] + default_label_shift[2]
   end
   host = Host.new(name, coord, label, monitor, ip, community, protocol_version, ifnames)
   hosts.push(host)
@@ -262,7 +268,7 @@ hosts.each{ |host|
           step_y = default_radius/magnitude*vct[1] * Math::sin(Math::PI/180*default_step[0]*fact) * Math::cos(Math::PI/180*default_step[2]*fact)
           step_z = default_radius/magnitude*vct[2] * Math::sin(Math::PI/180*default_step[1]*fact) * Math::sin(Math::PI/180*default_step[2]*fact)
           default_coord = [host.coord[0]+step_x, host.coord[1]+step_y, host.coord[2]+step_z]
-          default_label = [host.label[0]+step_x, host.label[1]+step_y, host.label[2]+step_z]
+          default_label = [host.coord[0]+step_x+default_label_shift[0], host.coord[1]+step_y+default_label_shift[1], host.coord[2]+step_z+default_label_shift[2]]
           graph_host_default = {name: dest, coord: default_coord, label: default_label, type: "default", ifnames: nil, parent: parent_node[:name], vector: nil}
           graph.push(graph_host_default)
           if fact > 0 then fact = -fact elsif fact < 0 then fact = -fact+1 else fact = 1 end

@@ -16,8 +16,6 @@ var Device = function(name, type, coord, label, ifnames) {
   this.y = coord[1];
   this.z = coord[2];
   this.ifnames = ifnames;
-  this.sprite = makeTextSprite(name);
-  this.sprite.position.set(this.label[0], this.label[1], this.label[2]);
 }
 
 // objet Link
@@ -72,7 +70,7 @@ function createLinks() {
 
 // fonction makeTextSprite
 // création d'un sprite à partir d'un canvas2D contenant du texte
-// http://stackoverflow.com/questions/23514274/three-js-2d-text-sprite-labels
+// adapté de http://stackoverflow.com/questions/23514274/three-js-2d-text-sprite-labels
 function makeTextSprite( message, parameters ) {
   if ( parameters === undefined ) parameters = {};
   var fontface = parameters.hasOwnProperty("fontface") ? parameters["fontface"] : "Arial";
@@ -83,6 +81,8 @@ function makeTextSprite( message, parameters ) {
   var textColor = parameters.hasOwnProperty("textColor") ?parameters["textColor"] : { r:0, g:0, b:0, a:1.0 };
 
   var canvas = document.createElement('canvas');
+  canvas.width = 600;  // il faut écrire gros pour ne pas trop scaler et donc augmenter la taille par défaut du canvas 
+
   var context = canvas.getContext('2d');
   context.font = "Bold " + fontsize + "px " + fontface;
   var metrics = context.measureText( message );
@@ -90,7 +90,7 @@ function makeTextSprite( message, parameters ) {
 
   context.fillStyle   = "rgba(" + backgroundColor.r + "," + backgroundColor.g + "," + backgroundColor.b + "," + backgroundColor.a + ")";
   context.strokeStyle = "rgba(" + borderColor.r + "," + borderColor.g + "," + borderColor.b + "," + borderColor.a + ")";
-
+  
   context.lineWidth = borderThickness;
   context.fillStyle = "rgba("+textColor.r+", "+textColor.g+", "+textColor.b+", 1.0)";
   context.fillText( message, borderThickness, fontsize + borderThickness);
@@ -100,10 +100,17 @@ function makeTextSprite( message, parameters ) {
 
   var spriteMaterial = new THREE.SpriteMaterial( { map: texture, useScreenCoordinates: false } );
   var sprite = new THREE.Sprite( spriteMaterial );
-  sprite.scale.set(0.5 * fontsize, 0.25 * fontsize, 0.75 * fontsize);
+  var scal = 1.2;
+  sprite.scale.set(0.5 * fontsize * scal, 0.25 * fontsize *scal, 0);
   return sprite;
 }
 
+function makeTextSprite1(text) {
+  var dynamicTexture = new THREEx.DynamicTexture(300,100);
+  var spriteMaterial = new THREE.SpriteMaterial( { map: dynamicTexture, useScreenCoordinates: false } );
+  var sprite = new THREE.Sprite( spriteMaterial );
+  return sprite;
+}
 
 // on met le rendu dans une fonction appelée par le init() général
 function displayGraph() {
@@ -151,7 +158,10 @@ function displayGraph() {
     device.position.y = devices[i].y;
     device.position.z = devices[i].z;
     scene.add(device);
-    scene.add(devices[i].sprite);
+
+    var label = makeTextSprite(devices[i].name);
+    label.position.set(devices[i].label[0], devices[i].label[1], devices[i].label[2]);
+    scene.add(label);
   }
 
   // dessin des liens
