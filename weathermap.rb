@@ -237,6 +237,7 @@ conf_devices.each_pair {|name, params|
 # et on l'ajoute comme nœud par défaut dans graph sinon
 hosts.each{ |host|
   if host.monitor then
+    # variable facteur d'angle, prendra les valeurs successives : 0, 1, -1, 2, -2, 3, -3, ...
     fact = 0
     host.port_names.each_value{ |dest|  
       # on ne s'occupe que des ifaces qui ont une destination   
@@ -259,9 +260,16 @@ hosts.each{ |host|
           vct = parent_node[:vector]
           magnitude = Math.sqrt(vct[0]*vct[0]+vct[1]*vct[1]+vct[2]*vct[2])
           if magnitude == 0 then magnitude = 1 end
-          step_x = default_radius/magnitude*vct[0] * Math::cos(Math::PI/180*default_step[0]*fact) * Math::cos(Math::PI/180*default_step[1]*fact)
-          step_y = default_radius/magnitude*vct[1] * Math::sin(Math::PI/180*default_step[0]*fact) * Math::cos(Math::PI/180*default_step[2]*fact)
-          step_z = default_radius/magnitude*vct[2] * Math::sin(Math::PI/180*default_step[1]*fact) * Math::sin(Math::PI/180*default_step[2]*fact)
+          xOy = Math::PI/180*default_step[0]*fact
+          xOz = Math::PI/180*default_step[1]*fact
+          yOz = Math::PI/180*default_step[2]*fact
+          vu0 = vct[0] / magnitude
+          vu1 = vct[1] / magnitude
+          vu2 = vct[2] / magnitude
+          step_x = default_radius * (Math::cos(xOy) * vu0 - Math::sin(xOy) * vu1) 
+          step_y = default_radius * (Math::sin(xOy) * vu0 + Math::cos(xOy) * vu1) 
+          step_z = 0
+
           default_coord = [host.coord[0]+step_x, host.coord[1]+step_y, host.coord[2]+step_z]
           default_label = [host.coord[0]+step_x+default_label_shift[0], host.coord[1]+step_y+default_label_shift[1], host.coord[2]+step_z+default_label_shift[2]]
           graph_host_default = {name: dest, coord: default_coord, label: default_label, type: "default", ifnames: nil, parent: parent_node[:name], vector: nil}
