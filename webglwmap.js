@@ -7,6 +7,9 @@ var devices = [];
 // variable globale links : tableau des links
 var links = [];
 
+// variable globale des dessins de liens
+var links3D = [];
+
 // objet Device
 var Device = function(name, type, coord, label, ifnames) {
   this.name = name;
@@ -167,7 +170,7 @@ function displayGraph() {
   }
 
   // dessin des liens
-  var linkRadius = 1.5;
+  var linkRadius = 3;
   for ( var i=0; i<links.length; i++) {
       var originIn = new THREE.Vector3(links[i].device_origin.x-linkRadius, links[i].device_origin.y, links[i].device_origin.z);
       var targetIn = new THREE.Vector3(links[i].device_destination.x-linkRadius, links[i].device_destination.y, links[i].device_destination.z);
@@ -203,6 +206,10 @@ function displayGraph() {
 
       scene.add(linkIn);
       scene.add(linkOut);
+
+  }
+
+  function update() {
 
   }
 

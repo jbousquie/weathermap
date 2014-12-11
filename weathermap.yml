@@ -96,11 +96,41 @@ swi-batc-2-1:
   community: comcacti
   type: switch
   version: SNMPv2c
-  coord: [-20, -130, -100]
+  coord: [-20, -130, 50]
   ifnames:
     Gi0/47: swi-batc-p1-1
     Gi0/46: swi-batc-0-1
     Gi0/48: swi-batc-1-1
+
+swi-a204-2:
+  ip: 192.168.0.244
+  community: comcacti
+  type: switch
+  version: SNMPv2c
+  coord: [0, -30, -150]
+  label: [0, -30, -120]
+  ifnames: 
+    Gi0/21: swi-a204-1
+
+swi-baie-1-3:
+  ip: 192.168.0.106
+  community: comcacti
+  type: switch
+  version: SNMPv2c
+  coord: [350, 0, -80]
+  ifnames:
+    Gi0/1: swi-a307-1
+    Gi0/2: swi-a307-2
+
+swi-baie-2-3:
+  ip: 192.168.0.109
+  community: comcacti
+  type: switch
+  version: SNMPv2c
+  coord: [300, -150, 0]
+  ifnames:
+    Gi0/24: swi-a202-1
+    Gi0/23: swi-a202-2
 
 
 # non monitorés
