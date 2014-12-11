@@ -263,12 +263,13 @@ hosts.each{ |host|
           xOy = Math::PI/180*default_step[0]*fact
           xOz = Math::PI/180*default_step[1]*fact
           yOz = Math::PI/180*default_step[2]*fact
-          vu0 = vct[0] / magnitude
-          vu1 = vct[1] / magnitude
-          vu2 = vct[2] / magnitude
-          step_x = default_radius * (Math::cos(xOy) * vu0 - Math::sin(xOy) * vu1) 
-          step_y = default_radius * (Math::sin(xOy) * vu0 + Math::cos(xOy) * vu1) 
-          step_z = 0
+          vu0 = vct[0] / magnitude * default_radius
+          vu1 = vct[1] / magnitude * default_radius
+          vu2 = vct[2] / magnitude * default_radius
+          # http://fr.wikipedia.org/wiki/Matrice_de_rotation#En_dimension_trois
+          step_x = (Math::cos(xOy) * vu0 - Math::sin(xOy) * vu1) #* (Math::cos(xOz) * vu0 + Math::sin(xOz) * vu2)
+          step_y = (Math::sin(xOy) * vu0 + Math::cos(xOy) * vu1) 
+          step_z = vu2 #* (-Math::sin(xOz) * vu0 + Math.cos(xOz) * vu2)
 
           default_coord = [host.coord[0]+step_x, host.coord[1]+step_y, host.coord[2]+step_z]
           default_label = [host.coord[0]+step_x+default_label_shift[0], host.coord[1]+step_y+default_label_shift[1], host.coord[2]+step_z+default_label_shift[2]]

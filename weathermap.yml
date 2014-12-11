@@ -47,8 +47,7 @@ swi-baie-serveur:
   community: comcacti
   version: SNMPv2c
   type: switch
-  coord: [150, 0, 0]
-  label: [150, 0, 40]
+  coord: [150, 0, -80]
   ifnames: 
     Gi0/11: swi-baie-3-3
     Gi0/15: swi-ndv
@@ -67,8 +66,7 @@ swi-bata-cent:
   community: comcacti
   type: switch
   version: SNMPv2c
-  coord: [-150, 0, 0]
-  label: [-150, 0, 40]
+  coord: [-150, 0, -80]
   ifnames: 
     Gi1/0/6: swi-a300
     Gi1/0/11: swi-a102
@@ -86,7 +84,7 @@ swi-batb-toip:
   community: comcacti
   type: switch
   version: SNMPv2c
-  coord: [-120, 80, 0]
+  coord: [-120, 80, -200]
   ifnames:
     Gi0/15: swi-b502
     Gi0/18: swi-batb
@@ -98,7 +96,7 @@ swi-batc-2-1:
   community: comcacti
   type: switch
   version: SNMPv2c
-  coord: [-20, -100, 0]
+  coord: [-20, -130, -100]
   ifnames:
     Gi0/47: swi-batc-p1-1
     Gi0/46: swi-batc-0-1

@@ -19,10 +19,10 @@ file_graph_json: '/var/www/html/weathermap/graph.json'
 
 # [θxy, θxz, θyz] : angles par défaut en degrés de décalage (le pas) des nœuds terminaux non déclarés
 # pour chaque plan : θxy = pas dans le plan xOy, θxz = pas dans le plan xOz, θyz = pas dans le plan yOz
-default_step: [30, 0, 0]
+default_step: [20, 0, 0]
 
 # rayon par défaut de placement des nœuds terminaux non déclarés autour de leur nœud père
-default_radius: 100
+default_radius: 150
 
 # vecteur par défaut : dans quelle direction éclater les nœeuds terminaux d'un nœud donné s'il n'a pas de parent
 # exemple : vers le  bas
