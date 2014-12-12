@@ -24,6 +24,7 @@ var Device = function(name, type, coord, label, ifnames) {
     this.metrics[i].previous = [0,0];   // mesure précédente
     this.metrics[i].last = [0,0];       // dernière mesure
     this.metrics[i].current = [0,0];    // valeur courante calculée entre la dernière et la précédente (tween)
+    this.metrics[i].step = [0,0];       // pas de progression entre précédente et dernière
   }
 }
 
@@ -123,7 +124,7 @@ function makeTextSprite1(text) {
 }
 
 // on met le rendu dans une fonction appelée par le init() général
-function displayGraph() {
+function displayGraph(refresh_rate) {
 
   // on crée tous les objets logiques à manipuler
   createDevices();
@@ -214,8 +215,21 @@ function displayGraph() {
       scene.add(linkOut);
   }
 
+  // fonction limit(var, limite, pas) : si var dépasse limite dans le sens du pas alors retourne limite, sinon retourne vr
+  function limit(vr, lm, stp) {
+    if (stp == 0) { return vr; }
+    if (stp > 0 ) {
+      if (vr >= lm) { return lm; }
+    }
+    else {
+      if (lm >= vr) { return lm; }
+    }
+    return vr;
+  }
+
   // mise à jour des données de monitoring
-  function updateData() {
+  function updateData(frequency) {
+     var prd = refresh_rate * frequency;
     // pour chaque entrée de data, on met à jour les attributs des Devices
     for (var res in data) {
       var dev = devices[res];
@@ -226,12 +240,26 @@ function displayGraph() {
         var descr = ifaces[i]["descr"];
         var speed = ifaces[i]["speed"];
         var octInOut = ifaces[i]["octInOut"];
+        // mesure de la bande bassante
+        var mbps = 8 / 1000 / 1000;
+        var mbpsIn = octInOut[0]  * mbps;
+        var mbpsOut = octInOut[1] * mbps;
         // si la mesure change
-        if ( metrics[ifname].last[0] != octInOut[0] || metrics[ifname].last[1] != octInOut[1]) {
-          metrics[ifname].previous = metrics[ifname].last;
-          metrics[ifname].last = octInOut;
-          metrics[ifname].current = metrics[ifname].previous;
-          console.log(res, metrics[ifname].last);
+        if ( metrics[ifname].last[0] != mbpsIn || metrics[ifname].last[1] != mbpsOut) {
+          console.log("changé ================================================");
+          metrics[ifname].previous[0] = metrics[ifname].last[0];
+          metrics[ifname].previous[1] = metrics[ifname].last[1];
+          metrics[ifname].last[0] = mbpsIn;
+          metrics[ifname].last[1] = mbpsOut;
+          metrics[ifname].current[0] = metrics[ifname].previous[0];
+          metrics[ifname].current[1] = metrics[ifname].previous[1];
+          metrics[ifname].step = [ (metrics[ifname].last[0] - metrics[ifname].previous[0]) /prd , (metrics[ifname].last[1] - metrics[ifname].previous[1]) /prd ];
+        }
+        else {
+          metrics[ifname].current[0] += metrics[ifname].step[0];
+          metrics[ifname].current[1] += metrics[ifname].step[1];
+          metrics[ifname].current[0] = limit(metrics[ifname].current[0], metrics[ifname].last[0], metrics[ifname].step[0]);
+          metrics[ifname].current[1] = limit(metrics[ifname].current[1], metrics[ifname].last[1], metrics[ifname].step[1]);
         }
       }
     }
@@ -239,7 +267,11 @@ function displayGraph() {
 
   // mise à jour visuelle des éléments du graphe
   function updateGraph() {
+    console.log(devices["rtr-central"].metrics["Gi1/0/22"].previous[0],devices["rtr-central"].metrics["Gi1/0/22"].current[0], devices["rtr-central"].metrics["Gi1/0/22"].last[0]);
 
+    for (dev in devices) {
+      // test
+    }
   }
 
   // affichage du graphe
@@ -252,8 +284,8 @@ function displayGraph() {
   // boucle infinie : màj données, màj dessins, rendu
   function loop() {
     window.requestAnimationFrame(loop);
-      updateData();
-    //updateGraph();
+    updateData(20);
+    updateGraph();
     render();
   }
 

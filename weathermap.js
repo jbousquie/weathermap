@@ -76,7 +76,7 @@ function init() {
   // variables de configuration
   var json_data_url = "monitor.json";            // url du fichier actualisé des données de mesure
   var json_graph_url = "graph.json";             // url du fichier des données de description du graphe
-  var refresh_rate = 10;                         // délai de rafraichissement en secondes
+  var refresh_rate = 15;                         // délai de rafraichissement en secondes
 
   // pour le test
   div_content = document.querySelector('#content');
@@ -84,5 +84,11 @@ function init() {
   // on lance la récupération des données de monitoring
   monitor(json_data_url, refresh_rate);
   // on lance la représentation du graphe après la récupération des premières données de monitoring
-  getData(json_data_url, function() { getGraph(json_graph_url, displayGraph); } );
+  getData(json_data_url, function() { 
+      getGraph(json_graph_url, function() { 
+          displayGraph(refresh_rate);
+          }
+      ); 
+    } 
+  );
 }
