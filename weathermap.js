@@ -35,18 +35,23 @@ function getJSON(json_url, key, callback) {
   req.send();
 }
 
-
-// fonction monitor
-// lance la récupération des données à intervalles donnés
-function monitor(json_data_url, refresh_rate) {
-  setInterval(function(){ getJSON(json_data_url, "data"); afficheResultats(); }, refresh_rate*1000);
-}
-
 // fonction getGraph
 // récupère la description du graphe depuis le fichier json sur le serveur
 // puis lance la fonction de callback
 function getGraph(json_graph_url, callback){
   getJSON(json_graph_url, "graph", callback);
+}
+
+// fonction getData
+// récupère la description les données du monitoring
+function getData(json_data_url, callback) {
+  getJSON(json_data_url, "data", callback);
+}
+
+// fonction monitor
+// lance la récupération des données à intervalles donnés
+function monitor(json_data_url, refresh_rate) {
+  setInterval(function(){ getData(json_data_url, "data"); afficheResultats(); }, refresh_rate*1000);
 }
 
 
@@ -78,6 +83,6 @@ function init() {
 
   // on lance la récupération des données de monitoring
   monitor(json_data_url, refresh_rate);
-  // on lance la représentation du graphe une fois qu'il est chargé
-  getGraph(json_graph_url, displayGraph);
+  // on lance la représentation du graphe après la récupération des premières données de monitoring
+  getData(json_data_url, function() { getGraph(json_graph_url, displayGraph); } );
 }

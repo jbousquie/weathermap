@@ -2,13 +2,11 @@
 // par le script weathermap.js
 
 // variable globale devices : tableau des devices
-var devices = [];
+var devices = {};
 
 // variable globale links : tableau des links
 var links = [];
 
-// variable globale des dessins de liens
-var links3D = [];
 
 // objet Device
 var Device = function(name, type, coord, label, ifnames) {
@@ -19,6 +17,14 @@ var Device = function(name, type, coord, label, ifnames) {
   this.y = coord[1];
   this.z = coord[2];
   this.ifnames = ifnames;
+  this.link = {};                // this.link[iface_name] = objet_link
+  this.metrics = {};
+  for (var i in ifnames) {
+    this.metrics[i] = {};
+    this.metrics[i].previous = [0,0];   // mesure précédente
+    this.metrics[i].last = [0,0];       // dernière mesure
+    this.metrics[i].current = [0,0];    // valeur courante calculée entre la dernière et la précédente (tween)
+  }
 }
 
 // objet Link
@@ -37,33 +43,34 @@ Link.prototype.setSpeed = function(speed) {
 function createDevices() {
   for(var i=0; i<graph.length; i++) {
     var dev = new Device(graph[i]["name"], graph[i]["type"], graph[i]["coord"],graph[i]["label"],graph[i]["ifnames"]);
-    devices.push(dev);
+    devices[graph[i]["name"]] = dev;
   }
 }
 
 // fonction getDeviceByName()
 // retrouve un objet Device à partir de son nom, retourne null sinon
-function getDeviceByName(name) {
-  var i = 0;
-  while(i < devices.length) {
-    if (devices[i].name == name) { return devices[i]; }
-    i++;
-  }
-  return null;
-}
+//function getDeviceByName(name) {
+//  var i = 0;
+//  while(i < devices.length) {
+//    if (devices[i].name == name) { return devices[i]; }
+//    i++;
+//  }
+//  return null;
+//}
 
 // fonction createLinks()
 // crée tous les objets Link et les range dans le tableau links
 function createLinks() {
   // boucle sur tous les devices
-  for (var i=0; i<devices.length; i++) {
+  for ( var i in devices ) {
     var device_ifnames = devices[i].ifnames;
     // boucle sur les ifnames du device
     for (ifname in device_ifnames) {
-        // si le ifname a une destination (not null)
+      // si le ifname a une destination (not null)
       if ( device_ifnames[ifname] != null ) {
-        lk = new Link(ifname, devices[i], getDeviceByName(device_ifnames[ifname]));
+        lk = new Link(ifname, devices[i], devices[device_ifnames[ifname]]);
         links.push(lk);
+        devices[i].link[ifname] = lk;
       // si la destination == null, on passe au suivant => pas de lien
       }
     }
@@ -136,8 +143,8 @@ function displayGraph() {
   camera.position.z = 600;
   camera.lookAt(scene.position);
 
-  var  axes = new THREE.AxisHelper(20);
-  scene.add(axes);
+  // var  axes = new THREE.AxisHelper(20);
+  // scene.add(axes);
 
   var ambientLight = new THREE.AmbientLight(0xFEFEFE);
   scene.add(ambientLight);
@@ -150,7 +157,7 @@ function displayGraph() {
   
   // dessin de tous les équipements du graphe
   // dessin des devices
-  for( var i=0; i<devices.length; i++ ) {
+  for( var i in devices ) {
     var deviceGeometry = new THREE.BoxGeometry(50,10,25);
     var deviceMaterial = new THREE.MeshLambertMaterial();
     //deviceMaterial.color.setRGB(.7,.5,.5);
@@ -170,27 +177,26 @@ function displayGraph() {
   }
 
   // dessin des liens
+  // rayon de la section d'un lien tubulaire
   var linkRadius = 3;
+  // courbe du lien : courbe de Bézier, déport latéral y d'un unique point de contrôle au milieu des extrémités du lien ... pour l'instant
+  var curveRadius = 10;
   for ( var i=0; i<links.length; i++) {
       var originIn = new THREE.Vector3(links[i].device_origin.x-linkRadius, links[i].device_origin.y, links[i].device_origin.z);
       var targetIn = new THREE.Vector3(links[i].device_destination.x-linkRadius, links[i].device_destination.y, links[i].device_destination.z);
       var middleIn = new THREE.Vector3( (links[i].device_origin.x-linkRadius+links[i].device_destination.x)/2,
-                                      (links[i].device_origin.y+links[i].device_destination.y)/2 - 10,
+                                      (links[i].device_origin.y+links[i].device_destination.y)/2 - curveRadius,
                                       (links[i].device_origin.z+links[i].device_destination.z)/2 );
       var originOut = new THREE.Vector3(links[i].device_origin.x+linkRadius, links[i].device_origin.y, links[i].device_origin.z);
       var targetOut = new THREE.Vector3(links[i].device_destination.x+linkRadius, links[i].device_destination.y, links[i].device_destination.z);
       var middleOut = new THREE.Vector3( (links[i].device_origin.x+linkRadius+links[i].device_destination.x)/2,
-                                      (links[i].device_origin.y+links[i].device_destination.y)/2 - 10,
+                                      (links[i].device_origin.y+links[i].device_destination.y)/2 - curveRadius,
                                       (links[i].device_origin.z+links[i].device_destination.z)/2 );
-    //var curve = new THREE.SplineCurve3( [origin, target] ); 
-    //var curve = new THREE.LineCurve3( origin, target ); 
+      //var curve = new THREE.LineCurve3( origin, target ); 
       var curveIn = new THREE.QuadraticBezierCurve3(originIn, middleIn, targetIn ); 
       var curveOut = new THREE.QuadraticBezierCurve3(originOut, middleOut, targetOut ); 
-
-
       var linkGeometryIn = new THREE.TubeGeometry(curveIn,64,linkRadius);
       var linkGeometryOut = new THREE.TubeGeometry(curveOut,64,linkRadius);
-
 
       var linkMaterialIn = new THREE.MeshLambertMaterial();
       linkMaterialIn.ambient.setRGB(0,0,1);
@@ -206,22 +212,54 @@ function displayGraph() {
 
       scene.add(linkIn);
       scene.add(linkOut);
+  }
+
+  // mise à jour des données de monitoring
+  function updateData() {
+    // pour chaque entrée de data, on met à jour les attributs des Devices
+    for (var res in data) {
+      var dev = devices[res];
+      var metrics = dev.metrics;
+      var ifaces = data[res];
+      for (var i=0; i<ifaces.length; i++) {
+        var ifname = ifaces[i]["name"];
+        var descr = ifaces[i]["descr"];
+        var speed = ifaces[i]["speed"];
+        var octInOut = ifaces[i]["octInOut"];
+        // si la mesure change
+        if ( metrics[ifname].last[0] != octInOut[0] || metrics[ifname].last[1] != octInOut[1]) {
+          metrics[ifname].previous = metrics[ifname].last;
+          metrics[ifname].last = octInOut;
+          metrics[ifname].current = metrics[ifname].previous;
+          console.log(res, metrics[ifname].last);
+        }
+      }
+    }
+  }
+
+  // mise à jour visuelle des éléments du graphe
+  function updateGraph() {
 
   }
 
-  function update() {
-
+  // affichage du graphe
+  function render() {  
+      var delta = clock.getDelta();
+      trackballControls.update(delta);
+      renderer.render(scene, camera);
   }
 
-  // boucle d'animation
-  function render() {
-    window.requestAnimationFrame(render);
-    var delta = clock.getDelta();
-    trackballControls.update(delta);
-    renderer.render(scene, camera);
+  // boucle infinie : màj données, màj dessins, rendu
+  function loop() {
+    window.requestAnimationFrame(loop);
+      updateData();
+    //updateGraph();
+    render();
   }
 
   var clock = new THREE.Clock();
-  render();
+  loop();
 
 }
+
+
