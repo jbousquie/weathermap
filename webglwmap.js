@@ -17,14 +17,16 @@ var Device = function(name, type, coord, label, ifnames) {
   this.y = coord[1];
   this.z = coord[2];
   this.ifnames = ifnames;
-  this.link = {};                // this.link[iface_name] = objet_link
+  this.link = {};                       // this.link[iface_name] = objet_link
   this.metrics = {};
+  this.visuals = {}
   for (var i in ifnames) {
-    this.metrics[i] = {};
+    this.metrics[i] = {};               // objet mesure
     this.metrics[i].previous = [0,0];   // mesure précédente
     this.metrics[i].last = [0,0];       // dernière mesure
     this.metrics[i].current = [0,0];    // valeur courante calculée entre la dernière et la précédente (tween)
     this.metrics[i].step = [0,0];       // pas de progression entre précédente et dernière
+    this.visuals[i] = {};               // objet visuel
   }
 }
 
@@ -48,16 +50,6 @@ function createDevices() {
   }
 }
 
-// fonction getDeviceByName()
-// retrouve un objet Device à partir de son nom, retourne null sinon
-//function getDeviceByName(name) {
-//  var i = 0;
-//  while(i < devices.length) {
-//    if (devices[i].name == name) { return devices[i]; }
-//    i++;
-//  }
-//  return null;
-//}
 
 // fonction createLinks()
 // crée tous les objets Link et les range dans le tableau links
@@ -79,47 +71,15 @@ function createLinks() {
 }
 
 
-// fonction makeTextSprite
-// création d'un sprite à partir d'un canvas2D contenant du texte
-// adapté de http://stackoverflow.com/questions/23514274/three-js-2d-text-sprite-labels
-function makeTextSprite( message, parameters ) {
-  if ( parameters === undefined ) parameters = {};
-  var fontface = parameters.hasOwnProperty("fontface") ? parameters["fontface"] : "Arial";
-  var fontsize = parameters.hasOwnProperty("fontsize") ? parameters["fontsize"] : 72;
-  var borderThickness = parameters.hasOwnProperty("borderThickness") ? parameters["borderThickness"] : 4;
-  var borderColor = parameters.hasOwnProperty("borderColor") ?parameters["borderColor"] : { r:0, g:0, b:0, a:1.0 };
-  var backgroundColor = parameters.hasOwnProperty("backgroundColor") ?parameters["backgroundColor"] : { r:255, g:255, b:255, a:1.0 };
-  var textColor = parameters.hasOwnProperty("textColor") ?parameters["textColor"] : { r:0, g:0, b:0, a:1.0 };
-
-  var canvas = document.createElement('canvas');
-  canvas.width = 600;  // il faut écrire gros pour ne pas trop scaler et donc augmenter la taille par défaut du canvas 
-
-  var context = canvas.getContext('2d');
-  context.font = "Bold " + fontsize + "px " + fontface;
-  var metrics = context.measureText( message );
-  var textWidth = metrics.width;
-
-  context.fillStyle   = "rgba(" + backgroundColor.r + "," + backgroundColor.g + "," + backgroundColor.b + "," + backgroundColor.a + ")";
-  context.strokeStyle = "rgba(" + borderColor.r + "," + borderColor.g + "," + borderColor.b + "," + borderColor.a + ")";
-  
-  context.lineWidth = borderThickness;
-  context.fillStyle = "rgba("+textColor.r+", "+textColor.g+", "+textColor.b+", 1.0)";
-  context.fillText( message, borderThickness, fontsize + borderThickness);
-
-  var texture = new THREE.Texture(canvas) 
-  texture.needsUpdate = true;
-
-  var spriteMaterial = new THREE.SpriteMaterial( { map: texture, useScreenCoordinates: false } );
-  var sprite = new THREE.Sprite( spriteMaterial );
-  var scal = 1.2;
-  sprite.scale.set(0.5 * fontsize * scal, 0.25 * fontsize *scal, 0);
-  return sprite;
-}
-
-function makeTextSprite1(text) {
-  var dynamicTexture = new THREEx.DynamicTexture(300,100);
-  var spriteMaterial = new THREE.SpriteMaterial( { map: dynamicTexture, useScreenCoordinates: false } );
-  var sprite = new THREE.Sprite( spriteMaterial );
+// function makeTextSprite
+// renvoie un sprite
+function makeTextSprite(text) {
+  var dynamicTexture = new THREEx.DynamicTexture(600,300);
+  dynamicTexture.texture.needsUpdate = true;
+  dynamicTexture.drawText(text,10,200, 'black', "bolder 72px Arial black");
+  var spriteMaterial = new THREE.SpriteMaterial( {map: dynamicTexture.texture} );
+  var sprite = new THREE.Sprite(spriteMaterial);
+  sprite.scale.set(0.5 * 72 * 1.8, 0.25 * 72 *1.8, 0);
   return sprite;
 }
 
@@ -172,6 +132,7 @@ function displayGraph(refresh_rate) {
     device.position.z = devices[i].z;
     scene.add(device);
 
+    //var label = makeTextSprite(devices[i].name);
     var label = makeTextSprite(devices[i].name);
     label.position.set(devices[i].label[0], devices[i].label[1], devices[i].label[2]);
     scene.add(label);
@@ -211,8 +172,18 @@ function displayGraph(refresh_rate) {
       linkMaterialOut.opacity = .4;
       var linkOut = new THREE.Mesh(linkGeometryOut, linkMaterialOut);
 
+      var labelTexture = new THREEx.DynamicTexture(600,512);
+      labelTexture.texture.needsUpdate = true;
+      labelTexture.context.font = "bolder 72px Arial";
+      var linkLabelMaterial = new THREE.SpriteMaterial( {map: labelTexture.texture} );
+      var linkLabel = new THREE.Sprite(linkLabelMaterial);
+      linkLabel.position.set(20,20,20);
+      linkLabel.scale.set(0.5 * 72 * 1.2, 0.25 * 72 *1.2, 0);
+      labelTexture.clear().drawText(links[i].device_origin.name, undefined, 256, 'red');
+
       scene.add(linkIn);
       scene.add(linkOut);
+      scene.add(linkLabel);
   }
 
   // fonction limit(var, limite, pas) : si var dépasse limite dans le sens du pas alors retourne limite, sinon retourne vr
@@ -229,7 +200,7 @@ function displayGraph(refresh_rate) {
 
   // mise à jour des données de monitoring
   function updateData(frequency) {
-     var prd = refresh_rate * frequency;
+     var prd = refresh_rate * frequency; // nombre de portions
     // pour chaque entrée de data, on met à jour les attributs des Devices
     for (var res in data) {
       var dev = devices[res];
@@ -246,7 +217,6 @@ function displayGraph(refresh_rate) {
         var mbpsOut = octInOut[1] * mbps;
         // si la mesure change
         if ( metrics[ifname].last[0] != mbpsIn || metrics[ifname].last[1] != mbpsOut) {
-          console.log("changé ================================================");
           metrics[ifname].previous[0] = metrics[ifname].last[0];
           metrics[ifname].previous[1] = metrics[ifname].last[1];
           metrics[ifname].last[0] = mbpsIn;
@@ -267,7 +237,7 @@ function displayGraph(refresh_rate) {
 
   // mise à jour visuelle des éléments du graphe
   function updateGraph() {
-    console.log(devices["rtr-central"].metrics["Gi1/0/22"].previous[0],devices["rtr-central"].metrics["Gi1/0/22"].current[0], devices["rtr-central"].metrics["Gi1/0/22"].last[0]);
+    //console.log(devices["rtr-central"].metrics["Gi1/0/22"].previous[0],devices["rtr-central"].metrics["Gi1/0/22"].current[0], devices["rtr-central"].metrics["Gi1/0/22"].last[0]);
 
     for (dev in devices) {
       // test
@@ -284,7 +254,7 @@ function displayGraph(refresh_rate) {
   // boucle infinie : màj données, màj dessins, rendu
   function loop() {
     window.requestAnimationFrame(loop);
-    updateData(20);
+    updateData(60);
     updateGraph();
     render();
   }

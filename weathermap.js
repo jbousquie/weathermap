@@ -51,7 +51,7 @@ function getData(json_data_url, callback) {
 // fonction monitor
 // lance la récupération des données à intervalles donnés
 function monitor(json_data_url, refresh_rate) {
-  setInterval(function(){ getData(json_data_url, "data"); afficheResultats(); }, refresh_rate*1000);
+  setInterval(function(){ getData(json_data_url, "data"); }, refresh_rate*1000);
 }
 
 
