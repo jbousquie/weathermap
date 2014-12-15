@@ -70,13 +70,19 @@ function createLinks() {
   }
 }
 
+// function makeTextTexture
+// renvoie une texture de texte à partir d'une chaîne
+function makeTextTexture(text) {
+  var dynamicTexture = new THREEx.DynamicTexture(800,300);
+  dynamicTexture.texture.needsUpdate = true;
+  //dynamicTexture.context.font = "bold 72px Arial";
+  dynamicTexture.drawText(text, 5, 200, 'black', "bold 72px Arial");
+  return dynamicTexture;
+}
 
 // function makeTextSprite
-// renvoie un sprite
-function makeTextSprite(text) {
-  var dynamicTexture = new THREEx.DynamicTexture(600,300);
-  dynamicTexture.texture.needsUpdate = true;
-  dynamicTexture.drawText(text,10,200, 'black', "bolder 72px Arial black");
+// renvoie un sprite à partir d'une texture de texte
+function makeTextSprite(dynamicTexture) {
   var spriteMaterial = new THREE.SpriteMaterial( {map: dynamicTexture.texture} );
   var sprite = new THREE.Sprite(spriteMaterial);
   sprite.scale.set(0.5 * 72 * 1.8, 0.25 * 72 *1.8, 0);
@@ -132,10 +138,10 @@ function displayGraph(refresh_rate) {
     device.position.z = devices[i].z;
     scene.add(device);
 
-    //var label = makeTextSprite(devices[i].name);
-    var label = makeTextSprite(devices[i].name);
+    var label = makeTextSprite(makeTextTexture(devices[i].name));
     label.position.set(devices[i].label[0], devices[i].label[1], devices[i].label[2]);
     scene.add(label);
+
   }
 
   // dessin des liens
@@ -172,14 +178,11 @@ function displayGraph(refresh_rate) {
       linkMaterialOut.opacity = .4;
       var linkOut = new THREE.Mesh(linkGeometryOut, linkMaterialOut);
 
-      var labelTexture = new THREEx.DynamicTexture(600,512);
-      labelTexture.texture.needsUpdate = true;
-      labelTexture.context.font = "bolder 72px Arial";
-      var linkLabelMaterial = new THREE.SpriteMaterial( {map: labelTexture.texture} );
-      var linkLabel = new THREE.Sprite(linkLabelMaterial);
-      linkLabel.position.set(20,20,20);
-      linkLabel.scale.set(0.5 * 72 * 1.2, 0.25 * 72 *1.2, 0);
-      labelTexture.clear().drawText(links[i].device_origin.name, undefined, 256, 'red');
+      var visualLink = links[i].device_origin.visuals[links[i].name];
+      visualLink.texture = makeTextTexture("in / out");
+      
+      var linkLabel = makeTextSprite(visualLink.texture);
+      linkLabel.position.set(middleIn.x, middleIn.y, middleIn.z+10);
 
       scene.add(linkIn);
       scene.add(linkOut);
@@ -237,10 +240,16 @@ function displayGraph(refresh_rate) {
 
   // mise à jour visuelle des éléments du graphe
   function updateGraph() {
-    //console.log(devices["rtr-central"].metrics["Gi1/0/22"].previous[0],devices["rtr-central"].metrics["Gi1/0/22"].current[0], devices["rtr-central"].metrics["Gi1/0/22"].last[0]);
-
-    for (dev in devices) {
-      // test
+    for (var dev in devices) {
+      var metrics = devices[dev].metrics;
+      var texture = devices[dev].visuals;
+      for( var mes in metrics ) {
+        var bdIn = metrics[mes].current[0];
+        var bdOut = metrics[mes].current[1];
+        var txtr = devices[dev].visuals[mes];
+        var text = "in : "+bdIn.toFixed(2)+" out : "+bdOut.toFixed(2);
+        txtr.texture.clear().drawText(text, 5, 200, 'blue', "bold 72px Arial");
+      }
     }
   }
 

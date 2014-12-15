@@ -32,7 +32,7 @@ default_vector: [0, -1, 0]
 
 # déplacement du label par défaut par rapport à la position du nœeud si aucun label n'est spécifié
 # la posistion du label sera alors node.coord[x,y,y]+default_label_shift[x,y,z]
-default_label_shift: [0, 10, 10]
+default_label_shift: [0, 20, 30]
 
 
 # SNMP et AFFICHAGE
@@ -40,7 +40,7 @@ default_label_shift: [0, 10, 10]
 
 # coordonnées initiales de la caméra, note : la caméra regarde en direction de l'origine [0, 0, 0]
 # cam_coord = [10, 5, 300]
-cam_coord: [10, 5, 300]
+cam_coord: [0, 5, 300]
 
 # période de rafraichissement de la collecte et de l'affichage en secondes
-refresh_rate: 15
+refresh_rate: 30

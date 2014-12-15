@@ -76,7 +76,7 @@ function init() {
   // variables de configuration
   var json_data_url = "monitor.json";            // url du fichier actualisé des données de mesure
   var json_graph_url = "graph.json";             // url du fichier des données de description du graphe
-  var refresh_rate = 15;                         // délai de rafraichissement en secondes
+  var refresh_rate = 30;                         // délai de rafraichissement en secondes
 
   // pour le test
   div_content = document.querySelector('#content');
