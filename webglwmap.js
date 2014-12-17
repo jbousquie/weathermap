@@ -7,28 +7,10 @@ var devices = {};
 // variable globale links : tableau des links
 var links = [];
 
+var texture_indexes = [];
 
-// objet Device
-var Device = function(name, type, coord, label, ifnames) {
-  this.name = name;
-  this.type = type;
-  this.label = label;
-  this.x = coord[0];
-  this.y = coord[1];
-  this.z = coord[2];
-  this.ifnames = ifnames;
-  this.link = {};                       // this.link[iface_name] = objet_link
-  this.metrics = {};
-  this.visuals = {}
-  for (var i in ifnames) {
-    this.metrics[i] = {};               // objet mesure
-    this.metrics[i].previous = [0,0];   // mesure précédente
-    this.metrics[i].last = [0,0];       // dernière mesure
-    this.metrics[i].current = [0,0];    // valeur courante calculée entre la dernière et la précédente (tween)
-    this.metrics[i].step = [0,0];       // pas de progression entre précédente et dernière
-    this.visuals[i] = {};               // objet visuel
-  }
-}
+
+
 
 // objet Link
 var Link = function(ifname, device_origin, device_destination) {
@@ -54,6 +36,7 @@ function createDevices() {
 // fonction createLinks()
 // crée tous les objets Link et les range dans le tableau links
 function createLinks() {
+  var texture_index = 0;
   // boucle sur tous les devices
   for ( var i in devices ) {
     var device_ifnames = devices[i].ifnames;
@@ -64,8 +47,11 @@ function createLinks() {
         lk = new Link(ifname, devices[i], devices[device_ifnames[ifname]]);
         links.push(lk);
         devices[i].link[ifname] = lk;
+        devices[i].txt_idx[ifname] = texture_index;
       // si la destination == null, on passe au suivant => pas de lien
       }
+      texture_indexes.push(texture_index);
+      texture_index += 1;
     }
   }
 }
@@ -75,19 +61,23 @@ function createLinks() {
 function makeTextTexture(text) {
   var dynamicTexture = new THREEx.DynamicTexture(800,300);
   dynamicTexture.texture.needsUpdate = true;
-  //dynamicTexture.context.font = "bold 72px Arial";
   dynamicTexture.drawText(text, 5, 200, 'black', "bold 72px Arial");
   return dynamicTexture;
 }
 
 // function makeTextSprite
-// renvoie un sprite à partir d'une texture de texte
-function makeTextSprite(dynamicTexture) {
+// renvoie un sprite à partir d'une texture de texte avec un offset vertical de i
+function makeTextSprite(dynamicTexture, i) {
   var spriteMaterial = new THREE.SpriteMaterial( {map: dynamicTexture.texture} );
+  if (i) {
+    spriteMaterial.uvOffset.set(0, 1 / links.length * i);
+  }
   var sprite = new THREE.Sprite(spriteMaterial);
   sprite.scale.set(0.5 * 72 * 1.8, 0.25 * 72 *1.8, 0);
   return sprite;
 }
+
+
 
 // on met le rendu dans une fonction appelée par le init() général
 function displayGraph(refresh_rate) {
@@ -104,6 +94,11 @@ function displayGraph(refresh_rate) {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMapEnabled = true;
   document.querySelector('#WebGL').appendChild(renderer.domElement);
+
+  // texture unique de tous les textes de données
+  var dataTexture = new THREEx.DynamicTexture(800,150);
+  dataTexture.texture.needsUpdate = true;
+
 
   camera.position.x = 0;
   camera.position.y = 10;
@@ -146,9 +141,11 @@ function displayGraph(refresh_rate) {
 
   // dessin des liens
   // rayon de la section d'un lien tubulaire
-  var linkRadius = 3;
+  var linkRadius = 2;
   // courbe du lien : courbe de Bézier, déport latéral y d'un unique point de contrôle au milieu des extrémités du lien ... pour l'instant
   var curveRadius = 10;
+
+  var index = 0;
   for ( var i=0; i<links.length; i++) {
       var originIn = new THREE.Vector3(links[i].device_origin.x-linkRadius, links[i].device_origin.y, links[i].device_origin.z);
       var targetIn = new THREE.Vector3(links[i].device_destination.x-linkRadius, links[i].device_destination.y, links[i].device_destination.z);
@@ -178,11 +175,14 @@ function displayGraph(refresh_rate) {
       linkMaterialOut.opacity = .4;
       var linkOut = new THREE.Mesh(linkGeometryOut, linkMaterialOut);
 
-      var visualLink = links[i].device_origin.visuals[links[i].name];
-      visualLink.texture = makeTextTexture("in / out");
+      //var visualData = links[i].device_origin.visuals[links[i].name];
       
-      var linkLabel = makeTextSprite(visualLink.texture);
+      //var linkLabel = makeTextSprite(visualLink.texture);
+// trouver un moyen soit de calculer l'index en cours dans le même sens de parcours dev/iface
+// soit d'associer la valeur de l'index à l'objet device ou link
+      var linkLabel = makeTextSprite(dataTexture);
       linkLabel.position.set(middleIn.x, middleIn.y, middleIn.z+10);
+      index += 1;
 
       scene.add(linkIn);
       scene.add(linkOut);
@@ -240,17 +240,24 @@ function displayGraph(refresh_rate) {
 
   // mise à jour visuelle des éléments du graphe
   function updateGraph() {
+    var i = 1;
+    var dataHeight = 150;
+    dataTexture.canvas.height = dataHeight;
     for (var dev in devices) {
       var metrics = devices[dev].metrics;
       var texture = devices[dev].visuals;
       for( var mes in metrics ) {
         var bdIn = metrics[mes].current[0];
         var bdOut = metrics[mes].current[1];
-        var txtr = devices[dev].visuals[mes];
+        //var txtr = devices[dev].visuals[mes];
         var text = "in : "+bdIn.toFixed(2)+" out : "+bdOut.toFixed(2);
-        txtr.texture.clear().drawText(text, 5, 200, 'blue', "bold 72px Arial");
+        // on écrit tout le texte des mesures à la suite dans une unique texture
+        dataTexture.drawText(text, 5, dataHeight*i, 'blue', "bold 72px Arial");
+        dataTexture.canvas.height += dataHeight;
+        i++;
       }
     }
+
   }
 
   // affichage du graphe
@@ -264,7 +271,7 @@ function displayGraph(refresh_rate) {
   function loop() {
     window.requestAnimationFrame(loop);
     updateData(60);
-    updateGraph();
+    //updateGraph();
     render();
   }
 
