@@ -23,7 +23,8 @@ DynamicTexture.prototype.clear = function() {
 
 DynamicTexture.prototype.drawText = function(text,x,y, contextFont) {
   this.context.font = contextFont;
-  this.context.fillText(text,x, y);
+  this.context.textBaseline = "top";
+  this.context.fillText(text,x, y);  // http://tutorials.jenkov.com/html5-canvas/text.html
   this.texture.needsUpdate = true;
   return this;
 }

@@ -7,25 +7,13 @@ var devices = {};
 // variable globale links : tableau des links
 var links = [];
 
+// tableau général des index dans la texture générale
 var texture_indexes = [];
 
 
-
-
-// objet Link
-var Link = function(ifname, device_origin, device_destination) {
-  this.name = ifname;
-  this.device_origin = device_origin;
-  this.device_destination = device_destination;
-}
-
-Link.prototype.setSpeed = function(speed) {
-  this.speed = speed;
-}
-
 // fonction createDevices()
 // crée les objets Device et les range dans le tableau devices
-function createDevices() {
+function createDevices(devices) {
   for(var i=0; i<graph.length; i++) {
     var dev = new Device(graph[i]["name"], graph[i]["type"], graph[i]["coord"],graph[i]["label"],graph[i]["ifnames"]);
     devices[graph[i]["name"]] = dev;
@@ -35,7 +23,7 @@ function createDevices() {
 
 // fonction createLinks()
 // crée tous les objets Link et les range dans le tableau links
-function createLinks() {
+function createLinks(devices, links) {
   var texture_index = 0;
   // boucle sur tous les devices
   for ( var i in devices ) {
@@ -50,7 +38,7 @@ function createLinks() {
         devices[i].txt_idx[ifname] = texture_index;
       // si la destination == null, on passe au suivant => pas de lien
       }
-      texture_indexes.push(texture_index);
+      devices[i].txt_idx[ifname] = texture_index;
       texture_index += 1;
     }
   }
@@ -59,9 +47,9 @@ function createLinks() {
 // function makeTextTexture
 // renvoie une texture de texte à partir d'une chaîne
 function makeTextTexture(text) {
-  var dynamicTexture = new THREEx.DynamicTexture(800,300);
+  var dynamicTexture = new DynamicTexture(800,300);
   dynamicTexture.texture.needsUpdate = true;
-  dynamicTexture.drawText(text, 5, 200, 'black', "bold 72px Arial");
+  dynamicTexture.drawText(text, 5, 200, "bold 72px Arial");
   return dynamicTexture;
 }
 
@@ -69,11 +57,13 @@ function makeTextTexture(text) {
 // renvoie un sprite à partir d'une texture de texte avec un offset vertical de i
 function makeTextSprite(dynamicTexture, i) {
   var spriteMaterial = new THREE.SpriteMaterial( {map: dynamicTexture.texture} );
-  if (i) {
-    spriteMaterial.uvOffset.set(0, 1 / links.length * i);
+  if (i !== undefined) {
+    dynamicTexture.texture.offset.set(0, 1 / links.length * i);
+    dynamicTexture.texture.repeat.set(1, 1 /links.length);
+    
   }
   var sprite = new THREE.Sprite(spriteMaterial);
-  sprite.scale.set(0.5 * 72 * 1.8, 0.25 * 72 *1.8, 0);
+  sprite.scale.set(80, 50, 0);
   return sprite;
 }
 
@@ -83,8 +73,8 @@ function makeTextSprite(dynamicTexture, i) {
 function displayGraph(refresh_rate) {
 
   // on crée tous les objets logiques à manipuler
-  createDevices();
-  createLinks();
+  createDevices(devices);
+  createLinks(devices, links);
 
   // initialisation de la scène et du renderer
   var scene = new THREE.Scene();
@@ -96,9 +86,16 @@ function displayGraph(refresh_rate) {
   document.querySelector('#WebGL').appendChild(renderer.domElement);
 
   // texture unique de tous les textes de données
-  var dataTexture = new THREEx.DynamicTexture(800,150);
-  dataTexture.texture.needsUpdate = true;
-
+  var dataTexture = new DynamicTexture(640,30*links.length);  // on crée un canvas 2D pouvant de hauteur proportionnelle au nombre de lignes à afficher
+  dataTexture.needsUpdate = true;
+  dataTexture.clear();
+  dataTexture.context.fillStyle = "blue";
+  //var dataSpriteMaterial = new THREE.SpriteMaterial( {map: dataTexture.texture} );
+  //var dataSprite = new THREE.Sprite(dataSpriteMaterial);
+  //dataSprite.position.set(0,0,200);
+  //dataSprite.scale.set(80,50,0);
+  //scene.add(dataSprite);
+  
 
   camera.position.x = 0;
   camera.position.y = 10;
@@ -140,6 +137,8 @@ function displayGraph(refresh_rate) {
   }
 
   // dessin des liens
+  // ================
+
   // rayon de la section d'un lien tubulaire
   var linkRadius = 2;
   // courbe du lien : courbe de Bézier, déport latéral y d'un unique point de contrôle au milieu des extrémités du lien ... pour l'instant
@@ -175,15 +174,12 @@ function displayGraph(refresh_rate) {
       linkMaterialOut.opacity = .4;
       var linkOut = new THREE.Mesh(linkGeometryOut, linkMaterialOut);
 
-      //var visualData = links[i].device_origin.visuals[links[i].name];
-      
-      //var linkLabel = makeTextSprite(visualLink.texture);
-// trouver un moyen soit de calculer l'index en cours dans le même sens de parcours dev/iface
-// soit d'associer la valeur de l'index à l'objet device ou link
-      var linkLabel = makeTextSprite(dataTexture);
+      var index = links[i].device_origin.txt_idx[links[i].name];
+      var linkLabel = makeTextSprite(dataTexture,index);
       linkLabel.position.set(middleIn.x, middleIn.y, middleIn.z+10);
-      index += 1;
+      linkLabel.scale.set(40,8,0);
 
+      
       scene.add(linkIn);
       scene.add(linkOut);
       scene.add(linkLabel);
@@ -240,20 +236,19 @@ function displayGraph(refresh_rate) {
 
   // mise à jour visuelle des éléments du graphe
   function updateGraph() {
-    var i = 1;
-    var dataHeight = 150;
-    dataTexture.canvas.height = dataHeight;
+    var i = 0;
+    var dataHeight = 30;
+    dataTexture.clear();
+    //dataTexture.canvas.height = dataHeight;
     for (var dev in devices) {
       var metrics = devices[dev].metrics;
       var texture = devices[dev].visuals;
       for( var mes in metrics ) {
         var bdIn = metrics[mes].current[0];
         var bdOut = metrics[mes].current[1];
-        //var txtr = devices[dev].visuals[mes];
         var text = "in : "+bdIn.toFixed(2)+" out : "+bdOut.toFixed(2);
         // on écrit tout le texte des mesures à la suite dans une unique texture
-        dataTexture.drawText(text, 5, dataHeight*i, 'blue', "bold 72px Arial");
-        dataTexture.canvas.height += dataHeight;
+        dataTexture.drawText(text, 0, dataHeight*i, "normal bold 36px Arial");
         i++;
       }
     }
@@ -271,7 +266,7 @@ function displayGraph(refresh_rate) {
   function loop() {
     window.requestAnimationFrame(loop);
     updateData(60);
-    //updateGraph();
+    updateGraph();
     render();
   }
 
