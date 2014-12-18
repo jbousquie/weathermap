@@ -7,8 +7,8 @@ var devices = {};
 // variable globale links : tableau des links
 var links = [];
 
-// tableau général des index dans la texture générale
-var texture_indexes = [];
+// tableau général des textSprites
+var textSprites= [];
 
 
 // fonction createDevices()
@@ -56,18 +56,17 @@ function makeTextTexture(text) {
 // function makeTextSprite
 // renvoie un sprite à partir d'une texture de texte avec un offset vertical de i
 function makeTextSprite(dynamicTexture, i) {
-  if (i !== undefined) {
-    dynamicTexture.texture.offset.set(0, 1 / links.length * i);
-    dynamicTexture.texture.repeat.set(1, 1 /links.length);
-  }
-  var spriteMaterial = new THREE.SpriteMaterial( {map: dynamicTexture.texture} );
+  var tex = dynamicTexture.texture;
+  //if (i !== undefined) {
+  //  tex.offset.set(0, 1 / links.length * i);
+  //  tex.repeat.set(1, 1 /links.length);
+  //}
+  var spriteMaterial = new THREE.SpriteMaterial( {map: tex} );
   spriteMaterial.scaleByViewport = true;
   var sprite = new THREE.Sprite(spriteMaterial);
   sprite.scale.set(80, 50, 0);
   return sprite;
 }
-
-
 
 // on met le rendu dans une fonction appelée par le init() général
 function displayGraph(refresh_rate) {
@@ -90,11 +89,6 @@ function displayGraph(refresh_rate) {
   dataTexture.needsUpdate = true;
   dataTexture.clear();
   dataTexture.context.fillStyle = "blue";
-  //var dataSpriteMaterial = new THREE.SpriteMaterial( {map: dataTexture.texture} );
-  //var dataSprite = new THREE.Sprite(dataSpriteMaterial);
-  //dataSprite.position.set(0,0,200);
-  //dataSprite.scale.set(80,50,0);
-  //scene.add(dataSprite);
   
 
   camera.position.x = 0;
@@ -175,25 +169,22 @@ function displayGraph(refresh_rate) {
       var linkOut = new THREE.Mesh(linkGeometryOut, linkMaterialOut);
 
       var index = links[i].device_origin.txt_idx[links[i].name];
-      var linkLabel = makeTextSprite(dataTexture,index);
-      linkLabel.position.set(middleIn.x, middleIn.y, middleIn.z+10);
-      linkLabel.scale.set(40,8,0);
+      //var linkLabel = makeTextSprite(dataTexture,index);
 
-      
+      // on initialise un spriteText par label 
+      var tex = dataTexture.texture.clone();
+      tex.needsUpdate = true;
+      //tex.offset.set(0, 1 / links.length * index);
+      //tex.repeat.set(1, 1 / links.length);
+      var linkLabel = new TextSprite(tex);
+      textSprites[i] = linkLabel;
+      linkLabel.sprite.position.set(middleIn.x, middleIn.y, middleIn.z+10);
+      linkLabel.sprite.scale.set(40,8,0);
+    
       scene.add(linkIn);
       scene.add(linkOut);
-      scene.add(linkLabel);
+      scene.add(linkLabel.sprite);
   }
-// test
-dataTexture.texture.offset.set(0,0);
-dataTexture.texture.repeat.set(0,0);
-var testSpriteMat = new THREE.SpriteMaterial( {map: dataTexture.texture});
-testSpriteMat.scaleByViewport = true;
-var testSprite = new THREE.Sprite(testSpriteMat);
-testSprite.position.set(-20,10,150);
-testSprite.scale.set(120,60,0);
-scene.add(testSprite);
-
 
   // fonction limit(var, limite, pas) : si var dépasse limite dans le sens du pas alors retourne limite, sinon retourne vr
   function limit(vr, lm, stp) {
@@ -259,6 +250,8 @@ scene.add(testSprite);
         var text = "in : "+bdIn.toFixed(2)+" out : "+bdOut.toFixed(2);
         // on écrit tout le texte des mesures à la suite dans une unique texture
         dataTexture.drawText(text, 0, dataHeight*i, "normal bold 36px Arial");
+        var tex = dataTexture.texture.clone();
+        textSprites[i].update(tex);
         i++;
       }
     }
@@ -284,5 +277,3 @@ scene.add(testSprite);
   loop();
 
 }
-
-

@@ -66,3 +66,19 @@ var Link = function(ifname, device_origin, device_destination) {
 Link.prototype.setSpeed = function(speed) {
   this.speed = speed;
 }
+
+// objet TextSprite
+// représente un sprite texte dynamique
+var TextSprite = function(texture) {
+  this.texture = texture;
+  this.material = new THREE.SpriteMaterial( {map: this.texture} );
+  this.material.scaleByViewport = true;
+  this.sprite = new THREE.Sprite(this.material);
+  this.sprite.scale.set(80, 50, 0);
+}
+
+TextSprite.prototype.update = function(texture) {
+  this.texture = texture;
+  this.texture.needsUpdate = true;
+}
+
