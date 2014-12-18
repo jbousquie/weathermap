@@ -1,0 +1,141 @@
+# fichier YAML de déclaration des matériels à surveiller
+#
+# Indenter chaque niveau comme sur le modèle avec des espaces (tabulation interdite).
+# modèle :
+#
+# nom__equipement:
+#   ip: adresse_ip_de_connexion_snmp
+#   version: version_protocole_snmp (valeurs autorisées : SNMPv1 ou SNMPv2C)
+#   coord: [x, y, z] (position dans l'espace de l'équipement)
+#   label: [x, y, z] (position dans l'espace du libellé d'information, optionnel)
+#   ifnames:          (liste de noms de port )
+#     nom_port1: nom_equipement_distant1_connecté_au_port1
+#     nom_port2: nom_equipement_distant2_connecté_au_port2
+#     etc
+#  ou nom_portx : (vide) => le port sera monitoré, mais aucun lien créé
+#
+# Si l'équipement doit être représenté sur le graphe sans être monitoré (nœud terminal),
+# simplement ne pas mettre d'attibuts ip, version ni ifnames
+# exemple :
+#
+# nom__equipement:
+#   coord: 
+#   label: 
+#
+# A contrario, si ip est spécifié, il faut impérativement déclarer des valeurs de 
+# community, version et au moins une entrée de ifnames.
+# Note : les nœuds de destination non explicitement déclarés seront quand même
+# représentés dans le graphe mais placés automatiquement par rapport à leur nœud parent.
+
+passport:
+  ip: 192.168.0.100
+  community: public
+  version: SNMPv2c
+  type: router
+  coord: [0, 0, 0]
+  ifnames:
+    Gi1/0/22: CRI1
+    Gi1/0/25: CRI2
+    Gi1/0/27: ARS-BU1
+    Gi1/0/1: ARS-BU2
+    Gi1/0/2: CROUS
+    Gi1/0/3: ANCFAC1
+    Gi1/0/4: ANCFAC2
+    Gi1/0/5: SRN1
+    Gi1/0/6: SRN2
+    Gi1/0/7: MANU1
+    Gi1/0/8: MANU2
+    Gi1/0/9: SIPA
+
+CRI1:
+  type: switch
+  coord: [150, 200, 0]
+
+CRI2:
+  type: switch
+  coord: [100, 200, 0]
+
+CRI3:
+  type: switch
+  coord: [200, 200, 0]
+
+Firewall:
+  ip: 192.168.0.101
+  community: public
+  version: SNMPv2c
+  type: firewall
+  coord: [300, 250, 0]
+  ifnames: 
+    Gi0/11: CRI3
+    Gi0/15: Internet
+
+Internet:
+  coord: [400, 250, 0]
+
+MANU1:
+  ip: 10.7.0.239
+  community: public
+  type: switch
+  version: SNMPv2c
+  coord: [300, 0, 0]
+  ifnames: 
+    Gi1/0/6: Bat_A
+    Gi1/0/11: Bat_BD
+    Gi1/0/21: Bat_C
+    Gi1/0/12: BAT_E
+    Gi1/0/8: Bat_F
+    Gi1/0/7: Bat_H
+    Gi1/0/1: Bat_H1
+    Gi1/0/25: Bat_I
+    Gi1/0/3: Bat_Q
+
+MANU2:
+  type: switch
+  coord: [270, -30, 0]
+
+SRN2:
+  ip: 192.168.0.252
+  community: public
+  type: switch
+  version: SNMPv2c
+  coord: [0, -200, 0]
+  ifnames:
+    Gi1/0/22: SRN-0
+    Gi1/0/25: SRN-1
+    Gi1/0/27: SRN-2
+    Gi1/0/1: SRN-3
+    Gi1/0/2: SRNSE
+    Gi1/0/3: SR3
+    Gi1/0/4: LIRHE
+    Gi1/0/5: SR7
+    Gi1/0/6: SRJ
+    Gi1/0/7: SRS-0
+    Gi1/0/8: SRS-1
+    Gi1/0/9: SRS-2
+    Gi1/0/10: SRS-3
+
+SRN1:
+  type: switch
+  coord: [-30, -150, 0]
+
+ANCFAC2:
+  ip: 192.168.0.244
+  community: public
+  type: switch
+  version: SNMPv2c
+  coord: [-300, 30, 0]
+  ifnames: 
+    Gi0/1: AFCRI
+    Gi0/2: COM
+    Gi0/3: CRAD
+    Gi0/4: GARRIGOU
+    Gi0/5: SALLENQUE
+    Gi0/6: ETUD
+    Gi0/7: IEP
+    Gi0/8: REPRO
+    Gi0/9: AGCPT
+    Gi0/10: SUIO
+
+
+
+

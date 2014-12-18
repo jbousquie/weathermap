@@ -56,12 +56,12 @@ function makeTextTexture(text) {
 // function makeTextSprite
 // renvoie un sprite à partir d'une texture de texte avec un offset vertical de i
 function makeTextSprite(dynamicTexture, i) {
-  var spriteMaterial = new THREE.SpriteMaterial( {map: dynamicTexture.texture} );
   if (i !== undefined) {
     dynamicTexture.texture.offset.set(0, 1 / links.length * i);
     dynamicTexture.texture.repeat.set(1, 1 /links.length);
-    
   }
+  var spriteMaterial = new THREE.SpriteMaterial( {map: dynamicTexture.texture} );
+  spriteMaterial.scaleByViewport = true;
   var sprite = new THREE.Sprite(spriteMaterial);
   sprite.scale.set(80, 50, 0);
   return sprite;
@@ -184,6 +184,16 @@ function displayGraph(refresh_rate) {
       scene.add(linkOut);
       scene.add(linkLabel);
   }
+// test
+dataTexture.texture.offset.set(0,0);
+dataTexture.texture.repeat.set(0,0);
+var testSpriteMat = new THREE.SpriteMaterial( {map: dataTexture.texture});
+testSpriteMat.scaleByViewport = true;
+var testSprite = new THREE.Sprite(testSpriteMat);
+testSprite.position.set(-20,10,150);
+testSprite.scale.set(120,60,0);
+scene.add(testSprite);
+
 
   // fonction limit(var, limite, pas) : si var dépasse limite dans le sens du pas alors retourne limite, sinon retourne vr
   function limit(vr, lm, stp) {
