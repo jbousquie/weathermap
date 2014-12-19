@@ -174,16 +174,21 @@ function displayGraph(refresh_rate) {
       // on initialise un spriteText par label 
       var tex = dataTexture.texture.clone();
       tex.needsUpdate = true;
-      //tex.offset.set(0, 1 / links.length * index);
-      //tex.repeat.set(1, 1 / links.length);
-      var linkLabel = new TextSprite(tex);
+      tex.offset.set(0, 1 / links.length * i);
+      tex.repeat.set(1, 1 / links.length);
+      //var linkLabel = new TextSprite(tex);
+      var mat = new THREE.SpriteMaterial({map: tex});
+      var linkLabel = new THREE.Sprite(mat);
       textSprites[i] = linkLabel;
-      linkLabel.sprite.position.set(middleIn.x, middleIn.y, middleIn.z+10);
-      linkLabel.sprite.scale.set(40,8,0);
+      //linkLabel.sprite.position.set(middleIn.x, middleIn.y, middleIn.z+10);
+      //linkLabel.sprite.scale.set(40,8,0);
+      linkLabel.position.set(middleIn.x, middleIn.y, middleIn.z+10);
+      linkLabel.scale.set(40,8,0);
     
       scene.add(linkIn);
       scene.add(linkOut);
-      scene.add(linkLabel.sprite);
+      //scene.add(linkLabel.sprite);
+      scene.add(linkLabel);
   }
 
   // fonction limit(var, limite, pas) : si var dépasse limite dans le sens du pas alors retourne limite, sinon retourne vr
@@ -250,8 +255,8 @@ function displayGraph(refresh_rate) {
         var text = "in : "+bdIn.toFixed(2)+" out : "+bdOut.toFixed(2);
         // on écrit tout le texte des mesures à la suite dans une unique texture
         dataTexture.drawText(text, 0, dataHeight*i, "normal bold 36px Arial");
-        var tex = dataTexture.texture.clone();
-        textSprites[i].update(tex);
+        //var tex = dataTexture.texture.clone();
+        //textSprites[i].update(tex);
         i++;
       }
     }
