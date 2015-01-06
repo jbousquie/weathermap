@@ -44,93 +44,84 @@ function createLinks(devices, links) {
   }
 }
 
-// function makeTextTexture
-// renvoie une texture de texte à partir d'une chaîne
-function makeTextTexture(text) {
-  var dynamicTexture = new DynamicTexture(800,300);
-  dynamicTexture.texture.needsUpdate = true;
-  dynamicTexture.drawText(text, 5, 200, "bold 72px Arial");
-  return dynamicTexture;
-}
 
-// function makeTextSprite
-// renvoie un sprite à partir d'une texture de texte avec un offset vertical de i
-function makeTextSprite(dynamicTexture, i) {
-  var tex = dynamicTexture.texture;
-  //if (i !== undefined) {
-  //  tex.offset.set(0, 1 / links.length * i);
-  //  tex.repeat.set(1, 1 /links.length);
-  //}
-  var spriteMaterial = new THREE.SpriteMaterial( {map: tex} );
-  spriteMaterial.scaleByViewport = true;
-  var sprite = new THREE.Sprite(spriteMaterial);
-  sprite.scale.set(80, 50, 0);
-  return sprite;
-}
+//  fonction makeTextPlane :
+// crée un sprite texte
+var makeTextPlane = function(text, scene) {
+  var dynamicTexture = new BABYLON.DynamicTexture("DynamicTexture", 300, scene, true);
+  dynamicTexture.hasAlpha = true;
+  dynamicTexture.drawText(text, null, 50, "bold 70px Arial", "black", "transparent", false);
+  var plane = new BABYLON.Mesh.CreatePlane("TextPlane", 50, scene, true);
+  plane.material = new BABYLON.StandardMaterial("TextPlaneMaterial", scene);
+  plane.material.backFaceCulling = false;
+  plane.material.specularColor = new BABYLON.Color3(0, 0, 0);
+  plane.material.diffuseTexture = dynamicTexture;
+  return plane;
+};
 
-// on met le rendu dans une fonction appelée par le init() général
-function displayGraph(refresh_rate) {
 
+// fonction createScene : dessin de tous les éléments visuels
+var createScene = function(canvas, engine) {
   // on crée tous les objets logiques à manipuler
   createDevices(devices);
   createLinks(devices, links);
 
-  // initialisation de la scène et du renderer
-  var scene = new THREE.Scene();
-  var camera = new THREE.PerspectiveCamera(45, window.innerWidth /window.innerHeight, 0.1, 5000);
-  var renderer = new THREE.WebGLRenderer();
-  renderer.setClearColor(0xFEFEFE, 0.9);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMapEnabled = true;
-  document.querySelector('#WebGL').appendChild(renderer.domElement);
+  // BabylonJS
+  var scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color3(0.9, 0.9, 0.9);
+  var camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2 , Math.PI / 2, 600, BABYLON.Vector3.Zero(), scene);
+  camera.attachControl(canvas, false);
 
-  // texture unique de tous les textes de données
-  var dataTexture = new DynamicTexture(640,30*links.length);  // on crée un canvas 2D pouvant de hauteur proportionnelle au nombre de lignes à afficher
-  dataTexture.needsUpdate = true;
-  dataTexture.clear();
-  dataTexture.context.fillStyle = "blue";
-  
+  var light0 = new BABYLON.HemisphericLight("Hemi0", new BABYLON.Vector3(0,1,0), scene);
+  light0.diffuse = new BABYLON.Color3(1, 1, 1);
+  light0.specular = new BABYLON.Color3(1, 1, 1);
+  light0.groundColor = new BABYLON.Color3(0, 0, 0);
 
-  camera.position.x = 0;
-  camera.position.y = 10;
-  camera.position.z = 600;
-  camera.lookAt(scene.position);
-
-  // var  axes = new THREE.AxisHelper(20);
-  // scene.add(axes);
-
-  var ambientLight = new THREE.AmbientLight(0xFEFEFE);
-  scene.add(ambientLight);
-
-  // initialisation des contrôle du trackball
-  var trackballControls = new THREE.TrackballControls(camera);
-  trackballControls.rotateSpeed = 1.0;
-  trackballControls.zoomSpeed = 1.0;
-  trackballControls.panSpeed = 1.0;
-  
   // dessin de tous les équipements du graphe
+  // ========================================
   // dessin des devices
+  var deviceMat = new BABYLON.StandardMaterial("DeviceMaterial", scene);
+  deviceMat.alpha = 0.9;
+  deviceMat.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+  deviceMat.emissiveColor = new BABYLON.Color3.Black();
+  //deviceMat.backFaceCulling = false;
+  //mat.wireframe = true;
+  var nb = 0;
   for( var i in devices ) {
-    var deviceGeometry = new THREE.BoxGeometry(50,10,25);
-    var deviceMaterial = new THREE.MeshLambertMaterial();
-    //deviceMaterial.color.setRGB(.7,.5,.5);
-    deviceMaterial.ambient.setRGB(.5,.5,.5);
-    deviceMaterial.transparent = true;
-    deviceMaterial.opacity = .9;
-
-    var device = new THREE.Mesh(deviceGeometry, deviceMaterial);
+    var device = new BABYLON.Mesh.CreateBox("Device"+nb, 10.0, scene);
+    device.material = deviceMat;
     device.position.x = devices[i].x;
     device.position.y = devices[i].y;
     device.position.z = devices[i].z;
-    scene.add(device);
+    device.scaling.x = 5;
+    device.scaling.z  = 2.5;
 
-    var label = makeTextSprite(makeTextTexture(devices[i].name));
-    label.position.set(devices[i].label[0], devices[i].label[1], devices[i].label[2]);
-    scene.add(label);
-
+    var label = makeTextPlane(devices[i].name, scene);
+    label.position = new BABYLON.Vector3(devices[i].label[0], devices[i].label[1], devices[i].label[2]);
+    nb++;
   }
 
-  // dessin des liens
+  return scene;
+};
+
+// fonction displayGraph : 
+// tout le rendu est dans une fonction appelée par le init() général
+function displayGraph(refresh_rate) {
+
+  // initialisation du moteur et de la render loop
+  var canvas = document.querySelector('#WebGL');
+  var engine = new BABYLON.Engine(canvas, true);
+  var scene = createScene(canvas, engine);
+  window.addEventListener("resize", function() {
+    engine.resize();
+  });
+
+  engine.runRenderLoop(function() {
+    scene.render();
+  });
+
+  
+/*  // dessin des liens
   // ================
 
   // rayon de la section d'un lien tubulaire
@@ -189,7 +180,7 @@ function displayGraph(refresh_rate) {
       scene.add(linkOut);
       //scene.add(linkLabel.sprite);
       scene.add(linkLabel);
-  }
+  }*/
 
   // fonction limit(var, limite, pas) : si var dépasse limite dans le sens du pas alors retourne limite, sinon retourne vr
   function limit(vr, lm, stp) {
@@ -263,22 +254,13 @@ function displayGraph(refresh_rate) {
 
   }
 
-  // affichage du graphe
-  function render() {  
-      var delta = clock.getDelta();
-      trackballControls.update(delta);
-      renderer.render(scene, camera);
-  }
 
   // boucle infinie : màj données, màj dessins, rendu
   function loop() {
     window.requestAnimationFrame(loop);
     updateData(60);
     updateGraph();
-    render();
   }
 
-  var clock = new THREE.Clock();
-  loop();
 
 }
