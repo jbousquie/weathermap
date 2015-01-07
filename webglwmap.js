@@ -47,11 +47,11 @@ function createLinks(devices, links) {
 
 //  fonction makeTextPlane :
 // crée un sprite texte
-var makeTextPlane = function(text, scene) {
-  var dynamicTexture = new BABYLON.DynamicTexture("DynamicTexture", 300, scene, true);
+var makeTextPlane = function(text, size, scene) {
+  var dynamicTexture = new BABYLON.DynamicTexture("DynamicTexture", 600, scene, true);
   dynamicTexture.hasAlpha = true;
-  dynamicTexture.drawText(text, null, 50, "bold 70px Arial", "black", "transparent", false);
-  var plane = new BABYLON.Mesh.CreatePlane("TextPlane", 50, scene, true);
+  dynamicTexture.drawText(text, 5, 200, "bold 72px Arial", "black", "transparent", true);
+  var plane = new BABYLON.Mesh.CreatePlane("TextPlane", size, scene, true);
   plane.material = new BABYLON.StandardMaterial("TextPlaneMaterial", scene);
   plane.material.backFaceCulling = false;
   plane.material.specularColor = new BABYLON.Color3(0, 0, 0);
@@ -69,13 +69,17 @@ var createScene = function(canvas, engine) {
   // BabylonJS
   var scene = new BABYLON.Scene(engine);
   scene.clearColor = new BABYLON.Color3(0.9, 0.9, 0.9);
-  var camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2 , Math.PI / 2, 600, BABYLON.Vector3.Zero(), scene);
+  var camera = new BABYLON.ArcRotateCamera("Camera", 0 ,0, 0, BABYLON.Vector3.Zero(), scene);
+  camera.setPosition(new BABYLON.Vector3(0,10,-500));
   camera.attachControl(canvas, false);
 
   var light0 = new BABYLON.HemisphericLight("Hemi0", new BABYLON.Vector3(0,1,0), scene);
   light0.diffuse = new BABYLON.Color3(1, 1, 1);
   light0.specular = new BABYLON.Color3(1, 1, 1);
   light0.groundColor = new BABYLON.Color3(0, 0, 0);
+
+  // axes pour le debug
+  showAxis(100, scene);
 
   // dessin de tous les équipements du graphe
   // ========================================
@@ -96,8 +100,9 @@ var createScene = function(canvas, engine) {
     device.scaling.x = 5;
     device.scaling.z  = 2.5;
 
-    var label = makeTextPlane(devices[i].name, scene);
-    label.position = new BABYLON.Vector3(devices[i].label[0], devices[i].label[1], devices[i].label[2]);
+    var labelSize = 60;
+    var label = makeTextPlane(devices[i].name, labelSize, scene);
+    label.position = new BABYLON.Vector3(devices[i].label[0], devices[i].label[1] - labelSize/2, devices[i].label[2]);
     nb++;
   }
 
@@ -264,3 +269,13 @@ function displayGraph(refresh_rate) {
 
 
 }
+
+//  fonction showAxis
+var showAxis = function(size, scene) {
+  var axisX = BABYLON.Mesh.CreateLines("axisX", [new BABYLON.Vector3.Zero(), new BABYLON.Vector3(size, 0, 0) ], scene);
+    axisX.color = new BABYLON.Color3(1, 0, 0);
+    var axisY = BABYLON.Mesh.CreateLines("axisY", [new BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, size, 0) ], scene);
+    axisY.color = new BABYLON.Color3(0, 1, 0);
+    var axisZ = BABYLON.Mesh.CreateLines("axisZ", [new BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, size) ], scene);
+    axisZ.color = new BABYLON.Color3(0, 0, 1);
+};

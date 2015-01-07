@@ -33,7 +33,7 @@ rtr-central:
   version: SNMPv2c
   type: router
   coord: [0, 50, 0]
-  label: [0, 50, 30]
+  #label: [0, 50, -30]
   ifnames:
     Gi1/0/22: fortigate 
     Gi1/0/25: swi-bata-cent
@@ -47,7 +47,7 @@ swi-baie-serveur:
   community: comcacti
   version: SNMPv2c
   type: switch
-  coord: [150, 0, -80]
+  coord: [150, 0, 80]
   ifnames: 
     Gi0/11: swi-baie-3-3
     Gi0/15: swi-ndv
@@ -66,7 +66,7 @@ swi-bata-cent:
   community: comcacti
   type: switch
   version: SNMPv2c
-  coord: [-150, 0, -80]
+  coord: [-150, 0, 80]
   ifnames: 
     Gi1/0/6: swi-a300
     Gi1/0/11: swi-a102
@@ -84,31 +84,30 @@ swi-batb-toip:
   community: comcacti
   type: switch
   version: SNMPv2c
-  coord: [-120, 80, -200]
+  coord: [-120, 80, 200]
   ifnames:
     Gi0/15: swi-b502
     Gi0/18: swi-batb
     Gi0/1: swi-batb-cent
     Gi0/13: swi-b501-1
 
-#swi-batc-2-1:
-#  ip: 10.7.0.254
-#  community: comcacti
-#  type: switch
-#  version: SNMPv2c
-#  coord: [-20, -130, 50]
-#  ifnames:
-#    Gi0/47: swi-batc-p1-1
-#    Gi0/46: swi-batc-0-1
-#    Gi0/48: swi-batc-1-1
+swi-batc-2-1:
+ ip: 10.7.0.254
+ community: comcacti
+ type: switch
+ version: SNMPv2c
+ coord: [20, -130, 50]
+ ifnames:
+   Gi0/47: swi-batc-p1-1
+   Gi0/46: swi-batc-0-1
+   Gi0/48: swi-batc-1-1
 
 swi-a204-2:
   ip: 192.168.0.244
   community: comcacti
   type: switch
   version: SNMPv2c
-  coord: [0, -30, -150]
-  label: [0, -30, -120]
+  coord: [-20, -80, -30]
   ifnames: 
     Gi0/21: swi-a204-1
 
@@ -117,7 +116,7 @@ swi-baie-1-3:
   community: comcacti
   type: switch
   version: SNMPv2c
-  coord: [350, 0, -80]
+  coord: [350, 0, 80]
   ifnames:
     Gi0/1: swi-a307-1
     Gi0/2: swi-a307-2
