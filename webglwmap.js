@@ -68,7 +68,7 @@ var createScene = function(canvas, engine) {
 
   // BabylonJS
   var scene = new BABYLON.Scene(engine);
-  scene.clearColor = new BABYLON.Color3(0.9, 0.9, 0.9);
+  scene.clearColor = new BABYLON.Color3(0.95, 0.95, 0.95);
   var camera = new BABYLON.ArcRotateCamera("Camera", 0 ,0, 0, BABYLON.Vector3.Zero(), scene);
   camera.setPosition(new BABYLON.Vector3(0,10,-500));
   camera.attachControl(canvas, false);
@@ -80,6 +80,15 @@ var createScene = function(canvas, engine) {
 
   // axes pour le debug
   showAxis(100, scene);
+
+/*  // test bézier
+  var quadraticBezierVectors = quadraticBezier( new BABYLON.Vector3.Zero(), new BABYLON.Vector3(30, 30, 10), new BABYLON.Vector3(20, 50, 0), 25);
+  var quadraticBezierCurve = new BABYLON.Mesh.CreateLines("qbezier", quadraticBezierVectors, scene);
+  quadraticBezierCurve.color = new BABYLON.Color3(1, 0, 0);
+
+  var cubicBezierVectors = cubicBezier( new BABYLON.Vector3.Zero(), new BABYLON.Vector3(-30, 30, 10), new BABYLON.Vector3(-60, 50, 0), new BABYLON.Vector3( -30, 70, 30), 25);
+  var cubicBezierCurve = new BABYLON.Mesh.CreateLines("cbezier", cubicBezierVectors, scene);
+  cubicBezierCurve.color = new BABYLON.Color3(0, 0, 1);*/
 
   // dessin de tous les équipements du graphe
   // ========================================
@@ -126,7 +135,7 @@ function displayGraph(refresh_rate) {
   });
 
   
-/*  // dessin des liens
+  // dessin des liens
   // ================
 
   // rayon de la section d'un lien tubulaire
@@ -136,56 +145,17 @@ function displayGraph(refresh_rate) {
 
   var index = 0;
   for ( var i=0; i<links.length; i++) {
-      var originIn = new THREE.Vector3(links[i].device_origin.x-linkRadius, links[i].device_origin.y, links[i].device_origin.z);
-      var targetIn = new THREE.Vector3(links[i].device_destination.x-linkRadius, links[i].device_destination.y, links[i].device_destination.z);
-      var middleIn = new THREE.Vector3( (links[i].device_origin.x-linkRadius+links[i].device_destination.x)/2,
+      var originIn = new BABYLON.Vector3(links[i].device_origin.x-linkRadius, links[i].device_origin.y, links[i].device_origin.z);
+      var targetIn = new BABYLON.Vector3(links[i].device_destination.x-linkRadius, links[i].device_destination.y, links[i].device_destination.z);
+      var middleIn = new BABYLON.Vector3( (links[i].device_origin.x-linkRadius+links[i].device_destination.x)/2,
                                       (links[i].device_origin.y+links[i].device_destination.y)/2 - curveRadius,
                                       (links[i].device_origin.z+links[i].device_destination.z)/2 );
-      var originOut = new THREE.Vector3(links[i].device_origin.x+linkRadius, links[i].device_origin.y, links[i].device_origin.z);
-      var targetOut = new THREE.Vector3(links[i].device_destination.x+linkRadius, links[i].device_destination.y, links[i].device_destination.z);
-      var middleOut = new THREE.Vector3( (links[i].device_origin.x+linkRadius+links[i].device_destination.x)/2,
+      var originOut = new BABYLON.Vector3(links[i].device_origin.x+linkRadius, links[i].device_origin.y, links[i].device_origin.z);
+      var targetOut = new BABYLON.Vector3(links[i].device_destination.x+linkRadius, links[i].device_destination.y, links[i].device_destination.z);
+      var middleOut = new BABYLON.Vector3( (links[i].device_origin.x+linkRadius+links[i].device_destination.x)/2,
                                       (links[i].device_origin.y+links[i].device_destination.y)/2 - curveRadius,
                                       (links[i].device_origin.z+links[i].device_destination.z)/2 );
-      //var curve = new THREE.LineCurve3( origin, target ); 
-      var curveIn = new THREE.QuadraticBezierCurve3(originIn, middleIn, targetIn ); 
-      var curveOut = new THREE.QuadraticBezierCurve3(originOut, middleOut, targetOut ); 
-      var linkGeometryIn = new THREE.TubeGeometry(curveIn,64,linkRadius);
-      var linkGeometryOut = new THREE.TubeGeometry(curveOut,64,linkRadius);
-
-      var linkMaterialIn = new THREE.MeshLambertMaterial();
-      linkMaterialIn.ambient.setRGB(0,0,1);
-      linkMaterialIn.transparent = true;
-      linkMaterialIn.opacity = .4;
-      var linkIn = new THREE.Mesh(linkGeometryIn, linkMaterialIn);
-
-      var linkMaterialOut = new THREE.MeshLambertMaterial();
-      linkMaterialOut.ambient.setRGB(1,0,0);
-      linkMaterialOut.transparent = true;
-      linkMaterialOut.opacity = .4;
-      var linkOut = new THREE.Mesh(linkGeometryOut, linkMaterialOut);
-
-      var index = links[i].device_origin.txt_idx[links[i].name];
-      //var linkLabel = makeTextSprite(dataTexture,index);
-
-      // on initialise un spriteText par label 
-      var tex = dataTexture.texture.clone();
-      tex.needsUpdate = true;
-      tex.offset.set(0, 1 / links.length * i);
-      tex.repeat.set(1, 1 / links.length);
-      //var linkLabel = new TextSprite(tex);
-      var mat = new THREE.SpriteMaterial({map: tex});
-      var linkLabel = new THREE.Sprite(mat);
-      textSprites[i] = linkLabel;
-      //linkLabel.sprite.position.set(middleIn.x, middleIn.y, middleIn.z+10);
-      //linkLabel.sprite.scale.set(40,8,0);
-      linkLabel.position.set(middleIn.x, middleIn.y, middleIn.z+10);
-      linkLabel.scale.set(40,8,0);
-    
-      scene.add(linkIn);
-      scene.add(linkOut);
-      //scene.add(linkLabel.sprite);
-      scene.add(linkLabel);
-  }*/
+  }
 
   // fonction limit(var, limite, pas) : si var dépasse limite dans le sens du pas alors retourne limite, sinon retourne vr
   function limit(vr, lm, stp) {
@@ -271,11 +241,73 @@ function displayGraph(refresh_rate) {
 }
 
 //  fonction showAxis
-var showAxis = function(size, scene) {
-  var axisX = BABYLON.Mesh.CreateLines("axisX", [new BABYLON.Vector3.Zero(), new BABYLON.Vector3(size, 0, 0) ], scene);
-    axisX.color = new BABYLON.Color3(1, 0, 0);
-    var axisY = BABYLON.Mesh.CreateLines("axisY", [new BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, size, 0) ], scene);
-    axisY.color = new BABYLON.Color3(0, 1, 0);
-    var axisZ = BABYLON.Mesh.CreateLines("axisZ", [new BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, size) ], scene);
-    axisZ.color = new BABYLON.Color3(0, 0, 1);
+var showAxis = function(size, scene) { 
+  var makeTextPlane = function(text, color, size) {
+  var dynamicTexture = new BABYLON.DynamicTexture("DynamicTexture", 50, scene, true);
+  dynamicTexture.hasAlpha = true;
+  dynamicTexture.drawText(text, 5, 40, "bold 36px Arial", color , "transparent", true);
+  var plane = new BABYLON.Mesh.CreatePlane("TextPlane", size, scene, true);
+  plane.material = new BABYLON.StandardMaterial("TextPlaneMaterial", scene);
+  plane.material.backFaceCulling = false;
+  plane.material.specularColor = new BABYLON.Color3(0, 0, 0);
+  plane.material.diffuseTexture = dynamicTexture;
+  return plane;
+  };
+
+  var axisX = BABYLON.Mesh.CreateLines("axisX", [ 
+    new BABYLON.Vector3.Zero(), new BABYLON.Vector3(size, 0, 0), new BABYLON.Vector3(size * 0.95, 0.05 * size, 0), 
+    new BABYLON.Vector3(size, 0, 0), new BABYLON.Vector3(size * 0.95, -0.05 * size, 0)
+    ], scene);
+  axisX.color = new BABYLON.Color3(1, 0, 0);
+  var xChar = makeTextPlane("X", "red", size / 10);
+  xChar.position = new BABYLON.Vector3(0.9 * size, -0.05 * size, 0);
+  var axisY = BABYLON.Mesh.CreateLines("axisY", [
+      new BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, size, 0), new BABYLON.Vector3( -0.05 * size, size * 0.95, 0), 
+      new BABYLON.Vector3(0, size, 0), new BABYLON.Vector3( 0.05 * size, size * 0.95, 0)
+      ], scene);
+  axisY.color = new BABYLON.Color3(0, 1, 0);
+  var yChar = makeTextPlane("Y", "green", size / 10);
+  yChar.position = new BABYLON.Vector3(0, 0.9 * size, -0.05 * size);
+  var axisZ = BABYLON.Mesh.CreateLines("axisZ", [
+      new BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, size), new BABYLON.Vector3( 0 , -0.05 * size, size * 0.95),
+      new BABYLON.Vector3(0, 0, size), new BABYLON.Vector3( 0, 0.05 * size, size * 0.95)
+      ], scene);
+  axisZ.color = new BABYLON.Color3(0, 0, 1);
+  var zChar = makeTextPlane("Z", "blue", size / 10);
+  zChar.position = new BABYLON.Vector3(0, 0.05 * size, 0.9 * size);
+};
+
+
+// http://fr.wikipedia.org/wiki/Courbe_de_B%C3%A9zier
+// http://en.wikipedia.org/wiki/B%C3%A9zier_curve
+
+// fonction Bézier quadratique
+// quadraticBezier(vector3Origin, vector3Control, vector3Destination, segmentNumber)
+var quadraticBezier = function(v0, v1, v2, nb) {
+  var bez = [];
+  var step = 1 / nb;
+  var equation = function(t, val0, val1, val2) {
+    var res = (1 -t ) * (1 - t) * val0 + 2 * t * (1-t) * val1 + t * t * val2;
+    return res;
+  };
+  for(var i = 0; i <= 1; i += step) {
+    bez.push( new BABYLON.Vector3(equation(i, v0.x, v1.x, v2.x), equation(i, v0.y, v1.y, v2.y), equation(i, v0.z, v1.z, v2.z)) );
+  }
+  bez.push(v2);
+  return bez;
+};
+// fonction Bézier cubique
+// cubicBezier(vector3Origin, vector3Control1, vector3Control2, vector3Destination, segmentNumber)
+var cubicBezier = function(v0, v1, v2, v3, nb) {
+  var bez = [];
+  var step = 1 / nb;
+  var equation = function(t, val0, val1, val2, val3) {
+    var res = (1 -t)*(1-t)*(1-t) * val0 + 3 * t * (1-t)*(1-t) * val1 + 3 * t*t *(1-t) * val2 + t*t*t * val3;
+    return res;
+  };
+  for(var i = 0; i <= 1; i += step) {
+    bez.push( new BABYLON.Vector3(equation(i, v0.x, v1.x, v2.x, v3.x), equation(i, v0.y, v1.y, v2.y, v3.y), equation(i, v0.z, v1.z, v2.z, v3.z)) );
+  }
+  bez.push(v3);
+  return bez;
 };
