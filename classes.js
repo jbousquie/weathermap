@@ -1,34 +1,5 @@
 // Script de déclaration des objets
 
-// DynamicTexture
-// inspiré de https://github.com/jeromeetienne/threex.dynamictexture/blob/master/threex.dynamictexture.js
-var DynamicTexture = function(width, height) {
-  var canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  this.canvas = canvas;
-
-  var context = canvas.getContext('2d');
-  this.context = context;
-
-  var texture = new THREE.Texture(canvas);
-  this.texture = texture;
-}
-
-DynamicTexture.prototype.clear = function() {
-  this.context.clearRect(0,0,this.canvas.width,this.canvas.height);
-  this.texture.needsUpdate = true;
-  return this;
-}
-
-DynamicTexture.prototype.drawText = function(text,x,y, contextFont) {
-  this.context.font = contextFont;
-  this.context.textBaseline = "top";
-  this.context.fillText(text,x, y);  // http://tutorials.jenkov.com/html5-canvas/text.html
-  this.texture.needsUpdate = true;
-  return this;
-}
-
 
 // objet Device
 // représente un équipement avec ses interfaces et les mesures de métrologies associées
