@@ -8,9 +8,14 @@ var devices = {};
 var links = [];
 
 // tableau général des textSprites
-var textSprites= [];
+//var textSprites= [];
 
-var dataTexture;
+// tableau général des mesures
+var measures = [];
+
+// texture globale
+// var dataTexture;
+// var ctx;
 
 
 // fonction createDevices()
@@ -38,7 +43,8 @@ function createLinks(devices, links) {
         links.push(lk);
         devices[i].link[ifname] = lk;
         devices[i].txt_idx[ifname] = texture_index;
-      // si la destination == null, on passe au suivant => pas de lien
+        measures.push(devices[i].metrics[ifname]) ; // on stocke les objets mesures de chaque device
+        // si la destination == null, on passe au suivant => pas de lien
       }
       devices[i].txt_idx[ifname] = texture_index;
       texture_index += 1;
@@ -101,7 +107,8 @@ var createScene = function(canvas, engine) {
   light0.groundColor = new BABYLON.Color3(0, 0, 0);
 
   // variable texture générale contenant tout le texte des mesures à afficher
-  dataTexture = new BABYLON.DynamicTexture("DataTexture", 600, scene, true);
+  // dataTexture = new BABYLON.DynamicTexture("DataTexture", 600, scene, true);
+  // ctx = dataTexture.getContext();
 
   // axes pour le debug
   // showAxis(100, scene);
@@ -129,7 +136,6 @@ var createScene = function(canvas, engine) {
 
     var labelSize = 80;
     var dynamicTexture = makeTextTexture(devices[i].name, scene, false);
-    // var label = makeTextPlane(dynamicTexture, labelSize, scene);
     var label = makeTextSprite(dynamicTexture, labelSize, scene);
     label.position = new BABYLON.Vector3(devices[i].label[0], devices[i].label[1] - labelSize/2, devices[i].label[2]);
     nb++;
@@ -142,10 +148,10 @@ var createScene = function(canvas, engine) {
   var curveRadius = 10;
 
   // sprite manager général
-  var spriteManager = new BABYLON.SpriteManager("dataTextureSM", "", 100, 512, scene);
-  spriteManager._spriteTexture = dataTexture;
-  spriteManager._spriteTexture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
-  spriteManager._spriteTexture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
+  // var spriteManager = new BABYLON.SpriteManager("dataTextureSM", "", 100, 512, scene);
+  // spriteManager._spriteTexture = dataTexture;
+  // spriteManager._spriteTexture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
+  // spriteManager._spriteTexture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
 
   var index = 0;
   for ( var i=0; i<links.length; i++) {
@@ -167,20 +173,21 @@ var createScene = function(canvas, engine) {
       linkInCurve.color = new BABYLON.Color3(0, 0, 1);
       linkOutCurve.color = new BABYLON.Color3(1, 0, 0);
 
+      // un sprite et une dynamicTexture par lien
       var linkLabelSize = 40;
-      // var dynamicTexture = makeTextTexture('', scene, false);
-      // var linkLabel = makeTextSprite(dynamicTexture, linkLabelSize, scene);
-      //var linkLabel = makeTextSprite(dataTexture, linkLabelSize, scene);
-
-      var linkLabel = new BABYLON.Sprite("textSprite", spriteManager);
-      linkLabel.size = linkLabelSize;
-
-      linkLabel.position = middleIn;
-      
-      /*
+      var dynamicTexture = makeTextTexture('', scene, false);
+      var linkLabel = makeTextSprite(dynamicTexture, linkLabelSize, scene);
       var device = links[i].device_origin;
       device.metrics[links[i].name].texture = dynamicTexture; // on récupère un pointeur sur la texture dans la propriété label de chaque mesure (metrics)
-      */
+      
+      // un sprite manager et un sprite par lien mais une unique dynamicTexture globale
+      // var linkLabel = makeTextSprite(dataTexture, linkLabelSize, scene);
+
+      // un sprite manager global et une dynamicTexture globale
+      // var linkLabel = new BABYLON.Sprite("textSprite", spriteManager);
+      // linkLabel.size = linkLabelSize;
+
+      linkLabel.position = middleIn;    
   }
 
   return scene;
@@ -198,10 +205,17 @@ function displayGraph(refresh_rate) {
     engine.resize();
   });
 
+  var nbMeasures = measures.length;
+  var indexMeasure = 0;
+
   engine.runRenderLoop(function() {
     updateData(60);
-    updateGraph();
+    updateGraph(indexMeasure);
     scene.render();
+    indexMeasure ++;
+    if (indexMeasure == nbMeasures) {
+      indexMeasure = 0;
+    }
   });
 
   
@@ -255,23 +269,32 @@ function displayGraph(refresh_rate) {
   }
 
   // mise à jour visuelle des éléments du graphe
-  function updateGraph() {
-    dataTexture.drawText("", 0, 0, null, null, "transparent");
-    var dataHeight = 10;
-    var i = 1;
+  // seule la i-ème texture est mise à jour
+  function updateGraph(idx) {
+    /*// dataTexture.drawText("", 0, 0, null, null, "transparent");
+    // var dataHeight = 50;
+    // var i = 1;
     var text = '';
     for (var dev in devices) {
       var metrics = devices[dev].metrics;
       for( var mes in metrics ) {
         var bdIn = metrics[mes].current[0];
         var bdOut = metrics[mes].current[1];
-        var text = text + "in : "+bdIn.toFixed(2)+" out : "+bdOut.toFixed(2);
-        //var text = "in : "+bdIn.toFixed(2)+" out : "+bdOut.toFixed(2);
-        //dataTexture.drawText(text, 5, i * dataHeight,"normal bold 36px Arial", "blue", null, false);
-        i++;
+        // text = text + "in : "+bdIn.toFixed(2)+" out : "+bdOut.toFixed(2); // texte concaténé
+        text = "in : "+bdIn.toFixed(2)+" out : "+bdOut.toFixed(2);
+        // metrics[mes].texture.drawText(text, 5, 200,"normal bold 36px Arial", "blue", null, false);
+        // dataTexture.drawText(text, 5, i * dataHeight,"normal bold 36px Arial", "blue", null, false); // dynamicTexture globale
+        // i++;
       }
     }
-    dataTexture.drawText(text, 5, 200,"normal bold 36px Arial", "blue", null, false);
+    // dataTexture.drawText(text, 5, 200,"normal bold 36px Arial", "blue", null, false); // dynTex globale*/
+    var mes = measures[idx];
+    var bdIn = mes.current[0];
+    var bdOut = mes.current[1];
+    var text = "in : "+bdIn.toFixed(2)+" out : "+bdOut.toFixed(2);
+    var ctx = mes.texture.getContext();
+    ctx.clearRect(0,0,512, 512);
+    mes.texture.drawText(text, 5, 200,"normal bold 48px Arial", "blue", null, false);
   }
 
 

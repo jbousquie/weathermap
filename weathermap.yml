@@ -91,16 +91,16 @@ swi-batb-toip:
     Gi0/1: swi-batb-cent
     Gi0/13: swi-b501-1
 
-swi-batc-2-1:
- ip: 10.7.0.254
- community: comcacti
- type: switch
- version: SNMPv2c
- coord: [20, -130, 50]
- ifnames:
-   Gi0/47: swi-batc-p1-1
-   Gi0/46: swi-batc-0-1
-   Gi0/48: swi-batc-1-1
+# swi-batc-2-1:
+#  ip: 10.7.0.254
+#  community: comcacti
+#  type: switch
+#  version: SNMPv2c
+#  coord: [20, -130, 50]
+#  ifnames:
+#    Gi0/47: swi-batc-p1-1
+#    Gi0/46: swi-batc-0-1
+#    Gi0/48: swi-batc-1-1
 
 swi-a204-2:
   ip: 192.168.0.244
