@@ -13,9 +13,11 @@ var links = [];
 // tableau général des mesures
 var measures = [];
 
-// texture globale
-// var dataTexture;
-// var ctx;
+// tableau des divs
+var divs = {};
+var curDiv;             // div courant pointé par la souris
+var lastDiv;            // dernier div pointé par la souris
+var onExit = false;     // on quitte juste un div
 
 
 // fonction createDevices()
@@ -55,7 +57,7 @@ function createLinks(devices, links) {
 // fonction makeTextTexture
 // crée une texture texte
 var makeTextTexture = function(text, scene, reverse) {
-  var dynamicTexture = new BABYLON.DynamicTexture("DynamicTexture", 512, scene, true);
+  var dynamicTexture = new BABYLON.DynamicTexture("DynamicTexture", 512, scene, false);
   dynamicTexture.hasAlpha = true;
   dynamicTexture.drawText(text, 5, 200, "bold 72px Arial", "black", "transparent", reverse);
   return dynamicTexture;
@@ -88,7 +90,7 @@ var makeTextPlane = function(textTexture, size, scene) {
 
 
 // fonction createScene : dessin de tous les éléments visuels
-var createScene = function(canvas, engine) {
+var createScene = function(canvas, engine, refresh_rate) {
 
   // on crée tous les objets logiques à manipuler
   createDevices(devices);
@@ -106,39 +108,41 @@ var createScene = function(canvas, engine) {
   light0.specular = new BABYLON.Color3(1, 1, 1);
   light0.groundColor = new BABYLON.Color3(0, 0, 0);
 
-  // variable texture générale contenant tout le texte des mesures à afficher
-  // dataTexture = new BABYLON.DynamicTexture("DataTexture", 600, scene, true);
-  // ctx = dataTexture.getContext();
-
   // axes pour le debug
   // showAxis(100, scene);
-  // scene.debugLayer.show();
-
 
   // dessin de tous les équipements du graphe
   // ========================================
   // dessin des devices
   var deviceMat = new BABYLON.StandardMaterial("DeviceMaterial", scene);
-  deviceMat.alpha = 0.9;
   deviceMat.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
-  deviceMat.emissiveColor = new BABYLON.Color3.Black();
-  //deviceMat.backFaceCulling = false;
-  //mat.wireframe = true;
-  var nb = 0;
-  for( var i in devices ) {
-    var device = new BABYLON.Mesh.CreateBox("Device"+nb, 10.0, scene);
-    device.material = deviceMat;
-    device.position.x = devices[i].x;
-    device.position.y = devices[i].y;
-    device.position.z = devices[i].z;
-    device.scaling.x = 5;
-    device.scaling.z  = 2.5;
 
+  var device;
+  var instance;
+  var index = 0;
+  for( var i in devices) {
+    var deviceName = "Device-"+index;
+    if ( index == 0 ) {
+      device = new BABYLON.Mesh.CreateBox(deviceName, 10.0, scene);
+      device.material = deviceMat;
+      device.position.x = devices[i].x;
+      device.position.y = devices[i].y;
+      device.position.z = devices[i].z;
+      device.scaling.x = 5;
+      device.scaling.z  = 2.5;
+    }
+    else {
+      instance = device.createInstance(deviceName);
+      instance.position.x = devices[i].x;
+      instance.position.y = devices[i].y;
+      instance.position.z = devices[i].z;
+    }
+    index ++;
     var labelSize = 80;
     var dynamicTexture = makeTextTexture(devices[i].name, scene, false);
     var label = makeTextSprite(dynamicTexture, labelSize, scene);
     label.position = new BABYLON.Vector3(devices[i].label[0], devices[i].label[1] - labelSize/2, devices[i].label[2]);
-    nb++;
+    divs[deviceName] = createDiv(deviceName, "device");
   }
 
   // dessin des liens
@@ -147,159 +151,147 @@ var createScene = function(canvas, engine) {
   // courbe du lien : courbe de Bézier, déport latéral y d'un unique point de contrôle au milieu des extrémités du lien ... pour l'instant
   var curveRadius = 10;
 
-  // sprite manager général
-  // var spriteManager = new BABYLON.SpriteManager("dataTextureSM", "", 100, 512, scene);
-  // spriteManager._spriteTexture = dataTexture;
-  // spriteManager._spriteTexture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
-  // spriteManager._spriteTexture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
-
-  var index = 0;
-  for ( var i=0; i<links.length; i++) {
-      var originIn = new BABYLON.Vector3(links[i].device_origin.x-linkRadius, links[i].device_origin.y, links[i].device_origin.z);
-      var targetIn = new BABYLON.Vector3(links[i].device_destination.x-linkRadius, links[i].device_destination.y, links[i].device_destination.z);
-      var middleIn = new BABYLON.Vector3( (links[i].device_origin.x-linkRadius+links[i].device_destination.x)/2,
-                                      (links[i].device_origin.y+links[i].device_destination.y)/2 - curveRadius,
-                                      (links[i].device_origin.z+links[i].device_destination.z)/2 );
-      var originOut = new BABYLON.Vector3(links[i].device_origin.x+linkRadius, links[i].device_origin.y, links[i].device_origin.z);
-      var targetOut = new BABYLON.Vector3(links[i].device_destination.x+linkRadius, links[i].device_destination.y, links[i].device_destination.z);
-      var middleOut = new BABYLON.Vector3( (links[i].device_origin.x+linkRadius+links[i].device_destination.x)/2,
-                                      (links[i].device_origin.y+links[i].device_destination.y)/2 - curveRadius,
-                                      (links[i].device_origin.z+links[i].device_destination.z)/2 );
-
-      var quadraticBezierVectorsIn = quadraticBezier(originIn, middleIn, targetIn, 25);
-      var quadraticBezierVectorsOut = quadraticBezier(originOut, middleOut, targetOut, 25);
-      var linkInCurve = new BABYLON.Mesh.CreateLines("qbezierIn", quadraticBezierVectorsIn, scene);
-      var linkOutCurve = new BABYLON.Mesh.CreateLines("qbezierOut", quadraticBezierVectorsOut, scene);
-      linkInCurve.color = new BABYLON.Color3(0, 0, 1);
-      linkOutCurve.color = new BABYLON.Color3(1, 0, 0);
-
-      // un sprite et une dynamicTexture par lien
-      var linkLabelSize = 40;
-      var dynamicTexture = makeTextTexture('', scene, false);
-      var linkLabel = makeTextSprite(dynamicTexture, linkLabelSize, scene);
-      var device = links[i].device_origin;
-      device.metrics[links[i].name].texture = dynamicTexture; // on récupère un pointeur sur la texture dans la propriété label de chaque mesure (metrics)
-      
-      // un sprite manager et un sprite par lien mais une unique dynamicTexture globale
-      // var linkLabel = makeTextSprite(dataTexture, linkLabelSize, scene);
-
-      // un sprite manager global et une dynamicTexture globale
-      // var linkLabel = new BABYLON.Sprite("textSprite", spriteManager);
-      // linkLabel.size = linkLabelSize;
-
-      linkLabel.position = middleIn;    
+  for ( var i = 0; i < links.length; i++) {
+    // courbe
+    var origin = new BABYLON.Vector3(links[i].device_origin.x, links[i].device_origin.y, links[i].device_origin.z);
+    var target = new BABYLON.Vector3(links[i].device_destination.x, links[i].device_destination.y, links[i].device_destination.z);
+    var middle = new BABYLON.Vector3( (links[i].device_origin.x-linkRadius+links[i].device_destination.x)/2,
+                                    (links[i].device_origin.y+links[i].device_destination.y)/2 - curveRadius,
+                                    (links[i].device_origin.z+links[i].device_destination.z)/2 );
+    var curve3 = BABYLON.Curve3.CreateQuadraticBezier(origin, middle, target, 25);
+    // tube
+    var linkName = "Link-"+i;
+    var linkCurve = BABYLON.Mesh.CreateTube(linkName, curve3.getPoints(), linkRadius, 8, null, scene);
+    // materail
+    var linkMat = new BABYLON.StandardMaterial("LinkMaterial", scene);
+    linkMat.alpha = 0.7;
+    linkMat.diffuseColor = BABYLON.Color3.Blue();
+    linkCurve.material = linkMat;
+    // div
+    divs[linkName] = createDiv(linkName, 'link');
   }
 
-  return scene;
-};
+  //var nbMeasures = measures.length;
+  //var indexMeasure = 0;
 
-// fonction displayGraph : 
-// tout le rendu est dans une fonction appelée par le init() général
-function displayGraph(refresh_rate) {
-
-  // initialisation du moteur et de la render loop
-  var canvas = document.querySelector('#WebGL');
-  var engine = new BABYLON.Engine(canvas, true);
-  var scene = createScene(canvas, engine);
-  window.addEventListener("resize", function() {
-    engine.resize();
-  });
-
-  var nbMeasures = measures.length;
-  var indexMeasure = 0;
-
-  engine.runRenderLoop(function() {
-    updateData(60);
-    updateGraph(indexMeasure);
-    scene.render();
+  // logique de la render loop
+  scene.registerBeforeRender(function() {
+    updateData(refresh_rate, 45);
+    updateGraph(scene, camera);
+    /*
     indexMeasure ++;
     if (indexMeasure == nbMeasures) {
       indexMeasure = 0;
     }
+    */
   });
-
-  
-  // fonction limit(var, limite, pas) : si var dépasse limite dans le sens du pas alors retourne limite, sinon retourne vr
-  function limit(vr, lm, stp) {
-    if (stp == 0) { return vr; }
-    if (stp > 0 ) {
-      if (vr >= lm) { return lm; }
-    }
-    else {
-      if (lm >= vr) { return lm; }
-    }
-    return vr;
-  }
-
-  // mise à jour des données de monitoring
-  function updateData(frequency) {
-     var prd = refresh_rate * frequency; // nombre de portions
-    // pour chaque entrée de data, on met à jour les attributs des Devices
-    for (var res in data) {
-      var dev = devices[res];
-      var metrics = dev.metrics;
-      var ifaces = data[res];
-      for (var i=0; i<ifaces.length; i++) {
-        var ifname = ifaces[i]["name"];
-        var descr = ifaces[i]["descr"];
-        var speed = ifaces[i]["speed"];
-        var octInOut = ifaces[i]["octInOut"];
-        // mesure de la bande bassante
-        var mbps = 8 / 1000 / 1000;
-        var mbpsIn = octInOut[0]  * mbps;
-        var mbpsOut = octInOut[1] * mbps;
-        // si la mesure change
-        if ( metrics[ifname].last[0] != mbpsIn || metrics[ifname].last[1] != mbpsOut) {
-          metrics[ifname].previous[0] = metrics[ifname].last[0];
-          metrics[ifname].previous[1] = metrics[ifname].last[1];
-          metrics[ifname].last[0] = mbpsIn;
-          metrics[ifname].last[1] = mbpsOut;
-          metrics[ifname].current[0] = metrics[ifname].previous[0];
-          metrics[ifname].current[1] = metrics[ifname].previous[1];
-          metrics[ifname].step = [ (metrics[ifname].last[0] - metrics[ifname].previous[0]) /prd , (metrics[ifname].last[1] - metrics[ifname].previous[1]) /prd ];
-        }
-        else {
-          metrics[ifname].current[0] += metrics[ifname].step[0];
-          metrics[ifname].current[1] += metrics[ifname].step[1];
-          metrics[ifname].current[0] = limit(metrics[ifname].current[0], metrics[ifname].last[0], metrics[ifname].step[0]);
-          metrics[ifname].current[1] = limit(metrics[ifname].current[1], metrics[ifname].last[1], metrics[ifname].step[1]);
-        }
-      }
-    }
-  }
-
-  // mise à jour visuelle des éléments du graphe
-  // seule la i-ème texture est mise à jour
-  function updateGraph(idx) {
-    /*// dataTexture.drawText("", 0, 0, null, null, "transparent");
-    // var dataHeight = 50;
-    // var i = 1;
-    var text = '';
-    for (var dev in devices) {
-      var metrics = devices[dev].metrics;
-      for( var mes in metrics ) {
-        var bdIn = metrics[mes].current[0];
-        var bdOut = metrics[mes].current[1];
-        // text = text + "in : "+bdIn.toFixed(2)+" out : "+bdOut.toFixed(2); // texte concaténé
-        text = "in : "+bdIn.toFixed(2)+" out : "+bdOut.toFixed(2);
-        // metrics[mes].texture.drawText(text, 5, 200,"normal bold 36px Arial", "blue", null, false);
-        // dataTexture.drawText(text, 5, i * dataHeight,"normal bold 36px Arial", "blue", null, false); // dynamicTexture globale
-        // i++;
-      }
-    }
-    // dataTexture.drawText(text, 5, 200,"normal bold 36px Arial", "blue", null, false); // dynTex globale*/
-    var mes = measures[idx];
-    var bdIn = mes.current[0];
-    var bdOut = mes.current[1];
-    var text = "in : "+bdIn.toFixed(2)+" out : "+bdOut.toFixed(2);
-    var ctx = mes.texture.getContext();
-    ctx.clearRect(0,0,512, 512);
-    mes.texture.drawText(text, 5, 200,"normal bold 48px Arial", "blue", null, false);
-  }
+  return scene;
+};
 
 
 
+// fonction displayGraph : 
+// tout le rendu est dans une fonction appelée par le init() général
+function displayGraph(refresh_rate) {
+  // initialisation du moteur et de la render loop
+  var canvas = document.querySelector('#WebGL');
+  var engine = new BABYLON.Engine(canvas, true);
+  var scene = createScene(canvas, engine, refresh_rate);
+  window.addEventListener("resize", function() {
+    engine.resize();
+  });
+  engine.runRenderLoop(function() {
+    scene.render();
+  });
 }
+
+
+// fonction limit(var, limite, pas) : si var dépasse limite dans le sens du pas alors retourne limite, sinon retourne vr
+function limit(vr, lm, stp) {
+  if (stp == 0) { return vr; }
+  if (stp > 0 ) {
+    if (vr >= lm) { return lm; }
+  }
+  else {
+    if (lm >= vr) { return lm; }
+  }
+  return vr;
+}
+
+// mise à jour des données de monitoring
+function updateData(refresh_rate, frequency) {
+  var prd = refresh_rate * frequency; // nombre de portions
+  // pour chaque entrée de data, on met à jour les attributs des Devices
+  for (var res in data) {
+    var dev = devices[res];
+    var metrics = dev.metrics;
+    var ifaces = data[res];
+    for (var i=0; i<ifaces.length; i++) {
+      var ifname = ifaces[i]["name"];
+      var descr = ifaces[i]["descr"];
+      var speed = ifaces[i]["speed"];
+      var octInOut = ifaces[i]["octInOut"];
+      // mesure de la bande bassante
+      var mbps = 8 / 1000 / 1000;
+      var mbpsIn = octInOut[0]  * mbps;
+      var mbpsOut = octInOut[1] * mbps;
+      // si la mesure change
+      if ( metrics[ifname].last[0] != mbpsIn || metrics[ifname].last[1] != mbpsOut) {
+        metrics[ifname].previous[0] = metrics[ifname].last[0];
+        metrics[ifname].previous[1] = metrics[ifname].last[1];
+        metrics[ifname].last[0] = mbpsIn;
+        metrics[ifname].last[1] = mbpsOut;
+        metrics[ifname].current[0] = metrics[ifname].previous[0];
+        metrics[ifname].current[1] = metrics[ifname].previous[1];
+        metrics[ifname].step = [ (metrics[ifname].last[0] - metrics[ifname].previous[0]) /prd , (metrics[ifname].last[1] - metrics[ifname].previous[1]) /prd ];
+      }
+      else {
+        metrics[ifname].current[0] += metrics[ifname].step[0];
+        metrics[ifname].current[1] += metrics[ifname].step[1];
+        metrics[ifname].current[0] = limit(metrics[ifname].current[0], metrics[ifname].last[0], metrics[ifname].step[0]);
+        metrics[ifname].current[1] = limit(metrics[ifname].current[1], metrics[ifname].last[1], metrics[ifname].step[1]);
+      }
+    }
+  }
+}
+
+// affiche le div du mesh pointé par la souris avec les valeurs courantes de la métrologie
+function updateGraph(scene, camera) {
+  var pickResult = scene.pick(scene.pointerX, scene.pointerY, function(mesh) { return mesh.isVisible && mesh.isReady() },
+    false, 
+    camera);
+  if (pickResult.hit) {
+    var id = pickResult.pickedMesh.id;
+    curDiv = divs[id];
+    if (lastDiv && curDiv != lastDiv) {
+      lastDiv.style.display = 'none';
+      lastDiv = curDiv;
+    }
+    curDiv.style.left = scene.pointerX+"px";
+    curDiv.style.top = scene.pointerY+"px";
+    curDiv.style.display = 'block';
+    curDiv.innerHTML = id;
+    onExit = true;
+    lastDiv = curDiv;
+  }
+  else if (curDiv && onExit){
+      curDiv.style.display = 'none';
+      onExit = false;
+  }
+}
+
+
+// createLink(name, class) : crée un div dans le DOM
+function createDiv(name, className) {
+  var div = document.createElement('div');
+  document.getElementsByTagName('body')[0].appendChild(div);
+  div.id = name;
+  div.className = className;
+  return div;
+}
+
+
+
 
 //  fonction showAxis
 var showAxis = function(size, scene) { 
@@ -307,7 +299,7 @@ var showAxis = function(size, scene) {
   var dynamicTexture = new BABYLON.DynamicTexture("DynamicTexture", 50, scene, true);
   dynamicTexture.hasAlpha = true;
   dynamicTexture.drawText(text, 5, 40, "bold 36px Arial", color , "transparent", true);
-  var plane = new BABYLON.Mesh.CreatePlane("TextPlane", size, scene, true);
+  var plane = BABYLON.Mesh.CreatePlane("TextPlane", size, scene, true);
   plane.material = new BABYLON.StandardMaterial("TextPlaneMaterial", scene);
   plane.material.backFaceCulling = false;
   plane.material.specularColor = new BABYLON.Color3(0, 0, 0);
@@ -338,37 +330,3 @@ var showAxis = function(size, scene) {
   zChar.position = new BABYLON.Vector3(0, 0.05 * size, 0.9 * size);
 };
 
-
-// http://fr.wikipedia.org/wiki/Courbe_de_B%C3%A9zier
-// http://en.wikipedia.org/wiki/B%C3%A9zier_curve
-
-// fonction Bézier quadratique
-// quadraticBezier(vector3Origin, vector3Control, vector3Destination, segmentNumber)
-var quadraticBezier = function(v0, v1, v2, nb) {
-  var bez = [];
-  var step = 1 / nb;
-  var equation = function(t, val0, val1, val2) {
-    var res = (1 -t ) * (1 - t) * val0 + 2 * t * (1-t) * val1 + t * t * val2;
-    return res;
-  };
-  for(var i = 0; i <= 1; i += step) {
-    bez.push( new BABYLON.Vector3(equation(i, v0.x, v1.x, v2.x), equation(i, v0.y, v1.y, v2.y), equation(i, v0.z, v1.z, v2.z)) );
-  }
-  bez.push(v2);
-  return bez;
-};
-// fonction Bézier cubique
-// cubicBezier(vector3Origin, vector3Control1, vector3Control2, vector3Destination, segmentNumber)
-var cubicBezier = function(v0, v1, v2, v3, nb) {
-  var bez = [];
-  var step = 1 / nb;
-  var equation = function(t, val0, val1, val2, val3) {
-    var res = (1 -t)*(1-t)*(1-t) * val0 + 3 * t * (1-t)*(1-t) * val1 + 3 * t*t *(1-t) * val2 + t*t*t * val3;
-    return res;
-  };
-  for(var i = 0; i <= 1; i += step) {
-    bez.push( new BABYLON.Vector3(equation(i, v0.x, v1.x, v2.x, v3.x), equation(i, v0.y, v1.y, v2.y, v3.y), equation(i, v0.z, v1.z, v2.z, v3.z)) );
-  }
-  bez.push(v3);
-  return bez;
-};
