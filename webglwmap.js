@@ -19,6 +19,12 @@ var curDiv;             // div courant pointé par la souris
 var lastDiv;            // dernier div pointé par la souris
 var onExit = false;     // on quitte juste un div
 
+// préfixes des noms de mesh, tous de même longueur
+var prefNameDev = "dev";
+var prefNameLnk = "lnk";
+var prefLength = prefNameDev.length;
+
+
 
 // fonction createDevices()
 // crée les objets Device et les range dans le tableau devices
@@ -121,7 +127,7 @@ var createScene = function(canvas, engine, refresh_rate) {
   var instance;
   var index = 0;
   for( var i in devices) {
-    var deviceName = "Device-"+index;
+    var deviceName = prefNameDev+index;
     if ( index == 0 ) {
       device = new BABYLON.Mesh.CreateBox(deviceName, 10.0, scene);
       device.material = deviceMat;
@@ -160,7 +166,7 @@ var createScene = function(canvas, engine, refresh_rate) {
                                     (links[i].device_origin.z+links[i].device_destination.z)/2 );
     var curve3 = BABYLON.Curve3.CreateQuadraticBezier(origin, middle, target, 25);
     // tube
-    var linkName = "Link-"+i;
+    var linkName = prefNameLnk+i;
     var linkCurve = BABYLON.Mesh.CreateTube(linkName, curve3.getPoints(), linkRadius, 8, null, scene);
     // materail
     var linkMat = new BABYLON.StandardMaterial("LinkMaterial", scene);
@@ -257,11 +263,11 @@ function updateData(refresh_rate, frequency) {
 
 // affiche le div du mesh pointé par la souris avec les valeurs courantes de la métrologie
 function updateGraph(scene, camera) {
-  var pickResult = scene.pick(scene.pointerX, scene.pointerY, function(mesh) { return mesh.isVisible && mesh.isReady() },
-    false, 
-    camera);
+  var pickResult = scene.pick(scene.pointerX, scene.pointerY, function(mesh) { return mesh.isVisible && mesh.isReady() }, false, camera);
   if (pickResult.hit) {
     var id = pickResult.pickedMesh.id;
+    var meshType = id.slice(0, prefLength);
+    var meshId = id.slice(prefLength);
     curDiv = divs[id];
     if (lastDiv && curDiv != lastDiv) {
       lastDiv.style.display = 'none';
@@ -270,7 +276,12 @@ function updateGraph(scene, camera) {
     curDiv.style.left = scene.pointerX+"px";
     curDiv.style.top = scene.pointerY+"px";
     curDiv.style.display = 'block';
-    curDiv.innerHTML = id;
+    var text = "type : " + meshType + "<br/>id : " + meshId + "<br/>";
+    if (meshType == prefNameLnk) {
+      text += "in = " + (measures[meshId].current[0]).toFixed(2) + " mbps<br>";
+      text += "out = " + (measures[meshId].current[1]).toFixed(2) + " mbps<br>";
+    }
+    curDiv.innerHTML = text;
     onExit = true;
     lastDiv = curDiv;
   }
