@@ -1,10 +1,10 @@
 // Ce script se charge de toute la partie de rendu à partir des données récupérées
 // par le script weathermap.js
 
-// variable globale devices : tableau des devices
+// variable globale devices : tableau des devices (logiques)
 var devices = {};
 
-// variable globale links : tableau des links
+// variable globale links : tableau des links (logiques)
 var links = [];
 
 // tableau général des textSprites
@@ -18,11 +18,19 @@ var divs = {};
 var curDiv;             // div courant pointé par la souris
 var lastDiv;            // dernier div pointé par la souris
 var onExit = false;     // on quitte juste un div
+var curId;
+var lastId;
 
 // préfixes des noms de mesh, tous de même longueur
 var prefNameDev = "dev";
 var prefNameLnk = "lnk";
 var prefLength = prefNameDev.length;
+
+// tableau des meshes
+var meshDevices = [];
+var meshLinks = [];
+var colorLink = BABYLON.Color3.Blue();
+var colorLinkPointed = new BABYLON.Color3(1, 0.5, 0.5);
 
 
 
@@ -83,18 +91,6 @@ var makeTextSprite = function(textTexture, size, scene) {
 };
 
 
-// fonction makeTextPlane :
-// crée un plan texte
-var makeTextPlane = function(textTexture, size, scene) {
-  var plane =  BABYLON.Mesh.CreatePlane("TextPlane", size, scene, true);
-  plane.material = new BABYLON.StandardMaterial("TextPlaneMaterial", scene);
-  plane.material.backFaceCulling = false;
-  plane.material.specularColor = new BABYLON.Color3(0, 0, 0);
-  plane.material.diffuseTexture = textTexture;
-  return plane;
-};
-
-
 // fonction createScene : dessin de tous les éléments visuels
 var createScene = function(canvas, engine, refresh_rate) {
 
@@ -122,26 +118,40 @@ var createScene = function(canvas, engine, refresh_rate) {
   // dessin des devices
   var deviceMat = new BABYLON.StandardMaterial("DeviceMaterial", scene);
   deviceMat.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+  var deviceMatFace = new BABYLON.StandardMaterial("DeviceMatFace", scene);
+  deviceMatFace.diffuseColor = new BABYLON.Color3(1, 1, 1);
+  var deviceMultiMat = new BABYLON.MultiMaterial("deviceMultiMat", scene);
+  deviceMultiMat.subMaterials.push(deviceMatFace);
+  deviceMultiMat.subMaterials.push(deviceMat);
+  var switchTexture = new BABYLON.Texture('images/switch.png', scene, true);
+  deviceMatFace.diffuseTexture = switchTexture;
 
-  var device;
-  var instance;
+  var deviceMesh;
+  var instanceMesh;
   var index = 0;
   for( var i in devices) {
     var deviceName = prefNameDev+index;
     if ( index == 0 ) {
-      device = new BABYLON.Mesh.CreateBox(deviceName, 10.0, scene);
-      device.material = deviceMat;
-      device.position.x = devices[i].x;
-      device.position.y = devices[i].y;
-      device.position.z = devices[i].z;
-      device.scaling.x = 5;
-      device.scaling.z  = 2.5;
+      deviceMesh = new BABYLON.Mesh.CreateBox(deviceName, 10.0, scene);
+      var verticesCount = deviceMesh.getTotalVertices();
+      deviceMesh.subMeshes = [];
+      deviceMesh.subMeshes.push(new BABYLON.SubMesh(0, 0, verticesCount, 0, 6, deviceMesh));
+      deviceMesh.subMeshes.push(new BABYLON.SubMesh(1, 0, verticesCount, 6, 30, deviceMesh));
+      deviceMesh.material = deviceMultiMat;
+      deviceMesh.position.x = devices[i].x;
+      deviceMesh.position.y = devices[i].y;
+      deviceMesh.position.z = devices[i].z;
+      deviceMesh.scaling.x = 5;
+      deviceMesh.scaling.z  = 2.5;
+      deviceMesh.rotation.y = Math.PI;
+      meshDevices.push(deviceMesh);
     }
     else {
-      instance = device.createInstance(deviceName);
-      instance.position.x = devices[i].x;
-      instance.position.y = devices[i].y;
-      instance.position.z = devices[i].z;
+      instanceMesh = deviceMesh.createInstance(deviceName);
+      instanceMesh.position.x = devices[i].x;
+      instanceMesh.position.y = devices[i].y;
+      instanceMesh.position.z = devices[i].z;
+      meshDevices.push(instanceMesh);
     }
     index ++;
     var labelSize = 80;
@@ -167,14 +177,15 @@ var createScene = function(canvas, engine, refresh_rate) {
     var curve3 = BABYLON.Curve3.CreateQuadraticBezier(origin, middle, target, 25);
     // tube
     var linkName = prefNameLnk+i;
-    var linkCurve = BABYLON.Mesh.CreateTube(linkName, curve3.getPoints(), linkRadius, 8, null, scene);
+    var linkMesh = BABYLON.Mesh.CreateTube(linkName, curve3.getPoints(), linkRadius, 8, null, scene);
     // materail
     var linkMat = new BABYLON.StandardMaterial("LinkMaterial", scene);
-    linkMat.alpha = 0.7;
+    linkMat.alpha = 0.5;
     linkMat.diffuseColor = BABYLON.Color3.Blue();
-    linkCurve.material = linkMat;
+    linkMesh.material = linkMat;
     // div
     divs[linkName] = createDiv(linkName, 'link');
+    meshLinks.push(linkMesh);
   }
 
   //var nbMeasures = measures.length;
@@ -268,10 +279,13 @@ function updateGraph(scene, camera) {
     var id = pickResult.pickedMesh.id;
     var meshType = id.slice(0, prefLength);
     var meshId = id.slice(prefLength);
+    curId = meshId;
     curDiv = divs[id];
-    if (lastDiv && curDiv != lastDiv) {
+    if (lastDiv && curDiv != lastDiv) {  // on passe d'un mesh à un autre directement
       lastDiv.style.display = 'none';
+      meshLinks[lastId].material.diffuseColor = colorLink;
       lastDiv = curDiv;
+      lastId = curId;
     }
     curDiv.style.left = scene.pointerX+"px";
     curDiv.style.top = scene.pointerY+"px";
@@ -280,14 +294,17 @@ function updateGraph(scene, camera) {
     if (meshType == prefNameLnk) {
       text += "in = " + (measures[meshId].current[0]).toFixed(2) + " mbps<br>";
       text += "out = " + (measures[meshId].current[1]).toFixed(2) + " mbps<br>";
+      meshLinks[meshId].material.diffuseColor = colorLinkPointed;
     }
     curDiv.innerHTML = text;
     onExit = true;
     lastDiv = curDiv;
+    lastId = curId;
   }
-  else if (curDiv && onExit){
+  else if (curDiv && onExit){   // on quitte un mesh pour rien d'autre
       curDiv.style.display = 'none';
       onExit = false;
+      meshLinks[curId].material.diffuseColor = colorLink;
   }
 }
 
@@ -300,6 +317,10 @@ function createDiv(name, className) {
   div.className = className;
   return div;
 }
+
+
+
+
 
 
 
