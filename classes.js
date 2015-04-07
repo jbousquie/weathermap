@@ -12,13 +12,13 @@ var Device = function(name, type, coord, label, ifnames) {
   this.z = coord[2];
   this.ifnames = ifnames;
   this.link = {};                       // this.link[iface_name] = objet_link
-  this.txt_idx = {};                    // this.txt_idx[ifname] = texture_index : index de position des données texte dans la texture générale
   this.metrics = {};
   for (var i in ifnames) {
     this.metrics[i] = {};               // objet mesure
     this.metrics[i].previous = [0,0];   // mesure précédente
     this.metrics[i].last = [0,0];       // dernière mesure
     this.metrics[i].current = [0,0];    // valeur courante calculée entre la dernière et la précédente (tween)
+    this.metrics[i].rate = [0, 0];      // pourcentage courant par rapport à la vitesse du lien
     this.metrics[i].step = [0,0];       // pas de progression entre précédente et dernière
   }
 }

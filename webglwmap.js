@@ -28,13 +28,15 @@ var prefLength = prefNameDev.length;
 
 // tableau des meshes
 var meshDevices = [];
-var meshLinks = [];
-var positionsMesh = [];
-var indicesMesh = [];
-var normalsMesh = [];
-var pathMesh = [];
-var path3DMesh = [];
-var colorLink = BABYLON.Color3.Blue();
+var meshLinks = [];     // tableau des mesh liens englobants
+var meshLinksIn = [];   // tableau des mesh liens IN
+var meshLinksOut = [];  // tableau des mesh liens OUT
+var pathMesh = [];      // tableau des paths de chaque tube
+var pathMeshIn = [];      // tableau des paths de chaque tube IN
+var pathMeshOut = [];      // tableau des paths de chaque tube OUT
+var radiusFunctionsIn = []; // tableau des radiusFunction de chaque tube IN
+var radiusFunctionsOut = []; // tableau des radiusFunction IN de chaque tube OUT
+var colorLink = BABYLON.Color3.White();
 var colorLinkPointed = new BABYLON.Color3(1, 0.5, 0.5);
 
 
@@ -52,7 +54,6 @@ function createDevices(devices) {
 // fonction createLinks()
 // crée tous les objets Link et les range dans le tableau links
 function createLinks(devices, links) {
-  var texture_index = 0;
   // boucle sur tous les devices
   for ( var i in devices ) {
     var device_ifnames = devices[i].ifnames;
@@ -63,12 +64,10 @@ function createLinks(devices, links) {
         lk = new Link(ifname, devices[i], devices[device_ifnames[ifname]]);
         links.push(lk);
         devices[i].link[ifname] = lk;
-        devices[i].txt_idx[ifname] = texture_index;
+        //devices[i].txt_idx[ifname] = texture_index;
         measures.push(devices[i].metrics[ifname]) ; // on stocke les objets mesures de chaque device
         // si la destination == null, on passe au suivant => pas de lien
       }
-      devices[i].txt_idx[ifname] = texture_index;
-      texture_index += 1;
     }
   }
 }
@@ -169,9 +168,21 @@ var createScene = function(canvas, engine, refresh_rate) {
 
   // dessin des liens
   // rayon de la section d'un lien tubulaire
-  var linkRadius = 2;
+  var linkRadius = 6;
   // courbe du lien : courbe de Bézier, déport latéral y d'un unique point de contrôle au milieu des extrémités du lien ... pour l'instant
   var curveRadius = 10;
+  // materials
+  var linkMat = new BABYLON.StandardMaterial("LinkMaterial", scene);
+  linkMat.alpha = 0.15;
+  linkMat.diffuseColor = BABYLON.Color3.White();
+  var linkMatIN = new BABYLON.StandardMaterial("LinkMaterialIn", scene);
+  linkMatIN.alpha = 0.5;
+  linkMatIN.diffuseColor = BABYLON.Color3.Blue();
+  var linkMatOUT= new BABYLON.StandardMaterial("LinkMaterialOut", scene);
+  linkMatOUT.alpha = 0.5;
+  linkMatOUT.diffuseColor = BABYLON.Color3.Red();
+  var shiftLink = new BABYLON.Vector3(2, 0, 0);
+  var curveSegments = 25;
 
   for ( var i = 0; i < links.length; i++) {
     // courbe
@@ -180,23 +191,44 @@ var createScene = function(canvas, engine, refresh_rate) {
     var middle = new BABYLON.Vector3( (links[i].device_origin.x-linkRadius+links[i].device_destination.x)/2,
                                     (links[i].device_origin.y+links[i].device_destination.y)/2 - curveRadius,
                                     (links[i].device_origin.z+links[i].device_destination.z)/2 );
-    var curve3 = BABYLON.Curve3.CreateQuadraticBezier(origin, middle, target, 25);
-    // tube
+    var originIn = origin.subtract(shiftLink);
+    var targetIn = target.subtract(shiftLink);
+    var middleIn = middle.subtract(shiftLink);
+    var originOut = origin.add(shiftLink);
+    var middleOut = middle.add(shiftLink);
+    var targetOut = target.add(shiftLink);
+
+    var curve3 = BABYLON.Curve3.CreateQuadraticBezier(origin, middle, target, curveSegments);
+    var curve3In = BABYLON.Curve3.CreateQuadraticBezier(originIn, middleIn, targetIn, curveSegments);
+    var curve3Out = BABYLON.Curve3.CreateQuadraticBezier(targetOut, middleOut, originOut, curveSegments);
+    // tube : on done le même nom aux trois tubes pour le picking
     var linkName = prefNameLnk+i;
-    var linkMesh = BABYLON.Mesh.CreateTube(linkName, curve3.getPoints(), linkRadius, 8, null, scene, true);
-    // materail
-    var linkMat = new BABYLON.StandardMaterial("LinkMaterial", scene);
-    linkMat.alpha = 0.3;
-    linkMat.diffuseColor = BABYLON.Color3.Blue();
+    var linkMesh = BABYLON.Mesh.CreateTube(linkName, curve3.getPoints(), linkRadius, 8, null, scene);
     linkMesh.material = linkMat;
+    var linkMeshIn = BABYLON.Mesh.CreateTube(linkName, curve3In.getPoints(), linkRadius / 4, 8, null, scene, true);
+    linkMeshIn.material = linkMatIN;
+    var linkMeshOut = BABYLON.Mesh.CreateTube(linkName, curve3Out.getPoints(), linkRadius / 4 , 8, null, scene, true);
+    linkMeshOut.material = linkMatOUT;
+
     // div
     divs[linkName] = createDiv(linkName, 'link');
     meshLinks.push(linkMesh);
-    positionsMesh.push(linkMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind));
-    indicesMesh.push(linkMesh.getIndices());
-    normalsMesh.push(new Array());
+    meshLinksIn.push(linkMeshIn);
+    meshLinksOut.push(linkMeshOut)
     pathMesh.push(curve3.getPoints());
-    path3DMesh.push(new BABYLON.Path3D(curve3.getPoints()));
+    pathMeshIn.push(curve3In.getPoints());
+    pathMeshOut.push(curve3Out.getPoints());
+    var closureRadius = function(linkRadius, k, rate, measure) {
+      var maxRadius = linkRadius / 2;
+      var radiusFunction = function(i, distance) {
+        //var radius = maxRadius * measure / 10 + Math.sin((distance + k) * measure) / 2;
+        var radius = 1 + maxRadius * rate + Math.sin(distance - k * measure / 10) / 2;
+        return radius;
+      };
+      return radiusFunction;
+    };
+    radiusFunctionsIn.push(closureRadius);
+    radiusFunctionsOut.push(closureRadius);
   }
 
   //var nbMeasures = measures.length;
@@ -208,12 +240,11 @@ var createScene = function(canvas, engine, refresh_rate) {
   scene.registerBeforeRender(function() {
     updateData(refresh_rate, 45);
     updateGraph(scene, camera);
-    var radiusFunction = function(i, distance) {
-      var radius = 2 + Math.sin((distance + k) / 4);
-      return radius;
-    };
     for(var i = 0; i < meshLinks.length; i++) {
-      meshLinks[i] = BABYLON.Mesh.CreateTube(null, pathMesh[i], null, null, radiusFunction, null, null, null, meshLinks[i]);
+      var radiusFunctionIn = radiusFunctionsIn[i](linkRadius, k, measures[i].rate[0], measures[i].current[0]);
+      var radiusFunctionOut = radiusFunctionsOut[i](linkRadius, k, measures[i].rate[1], measures[i].current[1]);
+      meshLinksIn[i] = BABYLON.Mesh.CreateTube(null, pathMeshIn[i], null, null, radiusFunctionIn, null, null, null, meshLinksIn[i]);
+      meshLinksOut[i] = BABYLON.Mesh.CreateTube(null, pathMeshOut[i], null, null, radiusFunctionOut, null, null, null, meshLinksOut[i]);
       k += 0.05;
     }
   });
@@ -285,6 +316,8 @@ function updateData(refresh_rate, frequency) {
         metrics[ifname].current[0] = limit(metrics[ifname].current[0], metrics[ifname].last[0], metrics[ifname].step[0]);
         metrics[ifname].current[1] = limit(metrics[ifname].current[1], metrics[ifname].last[1], metrics[ifname].step[1]);
       }
+      metrics[ifname].rate[0] = metrics[ifname].current[0] / speed / mbps * 100;
+      metrics[ifname].rate[1] = metrics[ifname].current[1] / speed / mbps * 100;
     }
   }
 }
@@ -293,9 +326,10 @@ function updateData(refresh_rate, frequency) {
 function updateGraph(scene, camera) {
   var pickResult = scene.pick(scene.pointerX, scene.pointerY, function(mesh) { return mesh.isVisible && mesh.isReady() }, false, camera);
   if (pickResult.hit) {
-    var id = pickResult.pickedMesh.id;
+    //var id = pickResult.pickedMesh.id;
+    var id = pickResult.pickedMesh.name;
     var meshType = id.slice(0, prefLength);
-    var meshId = id.slice(prefLength);
+    var meshId = parseInt(id.slice(prefLength));
     curId = meshId;
     curDiv = divs[id];
     if (lastDiv && curDiv != lastDiv) {  // on passe d'un mesh à un autre directement
@@ -311,6 +345,9 @@ function updateGraph(scene, camera) {
     if (meshType == prefNameLnk) {
       text += "in = " + (measures[meshId].current[0]).toFixed(2) + " mbps<br>";
       text += "out = " + (measures[meshId].current[1]).toFixed(2) + " mbps<br>";
+      text += "<br>";
+      text += "in = " + (measures[meshId].rate[0]).toFixed(2) + " %<br>";
+      text += "out = " + (measures[meshId].rate[1]).toFixed(2) + " %<br>";
       meshLinks[meshId].material.diffuseColor = colorLinkPointed;
     }
     curDiv.innerHTML = text;
