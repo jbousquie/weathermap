@@ -33,6 +33,7 @@ var positionsMesh = [];
 var indicesMesh = [];
 var normalsMesh = [];
 var pathMesh = [];
+var path3DMesh = [];
 var colorLink = BABYLON.Color3.Blue();
 var colorLinkPointed = new BABYLON.Color3(1, 0.5, 0.5);
 
@@ -195,6 +196,7 @@ var createScene = function(canvas, engine, refresh_rate) {
     indicesMesh.push(linkMesh.getIndices());
     normalsMesh.push(new Array());
     pathMesh.push(curve3.getPoints());
+    path3DMesh.push(new BABYLON.Path3D(curve3.getPoints()));
   }
 
   //var nbMeasures = measures.length;
@@ -211,14 +213,15 @@ var createScene = function(canvas, engine, refresh_rate) {
       return radius;
     };
     for(var i = 0; i < meshLinks.length; i++) {
-      updatePositions(positionsMesh[i], pathMesh[i], null, 8, radiusFunction);
-      updateMesh(meshLinks[i], positionsMesh[i],  indicesMesh[i], normalsMesh[i]);
+      meshLinks[i] = BABYLON.Mesh.CreateTube(null, pathMesh[i], null, null, radiusFunction, null, null, null, meshLinks[i]);
       k += 0.05;
     }
   });
+
+  //scene.debugLayer.show();
+
   return scene;
 };
-
 
 
 // fonction displayGraph : 
@@ -375,71 +378,3 @@ var showAxis = function(size, scene) {
   var zChar = makeTextPlane("Z", "blue", size / 10);
   zChar.position = new BABYLON.Vector3(0, 0.05 * size, 0.9 * size);
 };
-
-
-
-
-
-// update positions
-function updatePositions(positions, path, radius, tesselation, radiusFunction) {
-
-    // tube algo : paths creation
-    var pathsOfTube = function(path, radius, tesselation) {
-      var path3D = new BABYLON.Path3D(path);
-      var tangents = path3D.getTangents();
-      var normals = path3D.getNormals();
-      var distances = path3D.getDistances();
-      var pi2 = Math.PI * 2;
-      var step = pi2 / tesselation;
-      var returnRadius = function(i, distance) { return radius; };
-      var radiusFunctionFinal = radiusFunction || returnRadius;
-
-      var circlePaths = [];
-      var circlePath;
-      var normal;
-      var rotated;
-      var rotationMatrix;
-      var rad;
-
-      for (var i = 0; i < path.length; i++) {
-        circlePath = [];              
-        normal = normals[i];   
-        rad = radiusFunctionFinal(i, distances[i]);                   
-        for (var ang = 0; ang < pi2; ang += step) {
-          rotationMatrix = BABYLON.Matrix.RotationAxis(tangents[i], ang);
-          rotated = BABYLON.Vector3.TransformCoordinates(normal, rotationMatrix).scaleInPlace(rad).add(path[i]);
-          circlePath.push(rotated);
-          }
-        circlePaths.push(circlePath);
-      }
-      return circlePaths;
-    };
-
-    // ribbon algo : positions
-    var positionsOfRibbon = function(positions, pathArray) {
-      var minlg = pathArray[0].length;
-      var i = 0;
-      for (var p = 0; p < pathArray.length; p++) {
-        var path = pathArray[p];
-        var l = path.length;
-        minlg = (minlg < l) ? minlg : l;
-        var j = 0;
-        while (j < l) {
-          positions[i] = path[j].x;
-          positions[i + 1] = path[j].y;
-          positions[i + 2] = path[j].z;
-          j ++;
-          i += 3;
-        }
-      }
-    };
-
-    var pathArray = pathsOfTube(path, radius, tesselation);
-    positionsOfRibbon(positions, pathArray);
-}
-
-function updateMesh(mesh, positions, indices, normals) {
-  mesh.updateVerticesData(BABYLON.VertexBuffer.PositionKind, positions, false, false);
-  BABYLON.VertexData.ComputeNormals(positions, indices, normals);
-  mesh.updateVerticesData(BABYLON.VertexBuffer.NormalKind, normals, false, false);
-  };
