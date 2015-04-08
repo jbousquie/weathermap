@@ -3,7 +3,7 @@
 
 # path du fichier de déclaration des équipements à grapher/monitorer
 # file_devices_yaml: './weathermap.yml'
-file_devices_yaml: './weathermap.yml'
+file_devices_yaml: '/home/jerome/weathermap/weathermap.yml'
 
 # path du fichier des données de mesure, ce fichier doit être publiable par le serveur web
 # file_monitor_json: '/var/www/html/weathermap/monitor.json'

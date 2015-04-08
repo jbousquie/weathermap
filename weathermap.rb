@@ -15,7 +15,7 @@ require 'json'
 require 'snmp'
 include SNMP
 
-file_conf_yaml = './conf.yml'
+file_conf_yaml = '/home/jerome/weathermap/conf.yml'
 
 
 #### Refactoring en classes
