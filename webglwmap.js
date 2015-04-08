@@ -175,12 +175,14 @@ var createScene = function(canvas, engine, refresh_rate) {
   var linkMat = new BABYLON.StandardMaterial("LinkMaterial", scene);
   linkMat.alpha = 0.15;
   linkMat.diffuseColor = BABYLON.Color3.White();
+  /*
   var linkMatIN = new BABYLON.StandardMaterial("LinkMaterialIn", scene);
   linkMatIN.alpha = 0.5;
   linkMatIN.diffuseColor = BABYLON.Color3.Blue();
   var linkMatOUT= new BABYLON.StandardMaterial("LinkMaterialOut", scene);
   linkMatOUT.alpha = 0.5;
   linkMatOUT.diffuseColor = BABYLON.Color3.Red();
+  */
   var shiftLink = new BABYLON.Vector3(2, 0, 0);
   var curveSegments = 25;
 
@@ -206,9 +208,27 @@ var createScene = function(canvas, engine, refresh_rate) {
     var linkMesh = BABYLON.Mesh.CreateTube(linkName, curve3.getPoints(), linkRadius, 8, null, scene);
     linkMesh.material = linkMat;
     var linkMeshIn = BABYLON.Mesh.CreateTube(linkName, curve3In.getPoints(), linkRadius / 4, 8, null, scene, true);
-    linkMeshIn.material = linkMatIN;
     var linkMeshOut = BABYLON.Mesh.CreateTube(linkName, curve3Out.getPoints(), linkRadius / 4 , 8, null, scene, true);
+    
+
+    var linkMatIN = new BABYLON.StandardMaterial("LinkMaterialIn", scene);
+    var linkMatOUT= new BABYLON.StandardMaterial("LinkMaterialOut", scene);
+    linkMatIN.diffuseTexture = new BABYLON.Texture("images/gradientbleu.png", scene);
+    linkMatOUT.diffuseTexture = new BABYLON.Texture("images/gradientrouge.png", scene);
+    linkMatIN.diffuseTexture.hasAlpha = true;
+    linkMatOUT.diffuseTexture.hasAlpha = true;
+    //linkMatIN.diffuseTexture.uScale = 1;
+    //linkMatOUT.diffuseTexture.uScale = 1;
+    linkMatIN.diffuseTexture.vScale = 40;
+    linkMatOUT.diffuseTexture.vScale = 40;
+    linkMeshIn.material = linkMatIN;
     linkMeshOut.material = linkMatOUT;
+    linkMatIN.backFaceCulling = false;
+    linkMatOUT.backFaceCulling = false;
+    //linkMatIN.alpha = 0.8;
+    //linkMatOUT.alpha = 0.8;
+
+
 
     // div
     divs[linkName] = createDiv(linkName, 'link');
@@ -241,10 +261,21 @@ var createScene = function(canvas, engine, refresh_rate) {
     updateData(refresh_rate, 45);
     updateGraph(scene, camera);
     for(var i = 0; i < meshLinks.length; i++) {
+      /* tubes ondulants
       var radiusFunctionIn = radiusFunctionsIn[i](linkRadius, k, measures[i].rate[0], measures[i].current[0]);
       var radiusFunctionOut = radiusFunctionsOut[i](linkRadius, k, measures[i].rate[1], measures[i].current[1]);
       meshLinksIn[i] = BABYLON.Mesh.CreateTube(null, pathMeshIn[i], null, null, radiusFunctionIn, null, null, null, meshLinksIn[i]);
       meshLinksOut[i] = BABYLON.Mesh.CreateTube(null, pathMeshOut[i], null, null, radiusFunctionOut, null, null, null, meshLinksOut[i]);
+      */
+
+      var radiusIn = 1 + measures[i].rate[0] * linkRadius / 2;
+      var radiusOut = 1 + measures[i].rate[1] * linkRadius / 2;
+
+      meshLinksIn[i] = BABYLON.Mesh.CreateTube(null, pathMeshIn[i], radiusIn, null, null, null, null, null, meshLinksIn[i]);
+      meshLinksOut[i] = BABYLON.Mesh.CreateTube(null, pathMeshOut[i], radiusOut, null, null, null, null, null, meshLinksOut[i]);
+      meshLinksIn[i].material.diffuseTexture.vOffset -= measures[i].current[0] / 100;
+      meshLinksOut[i].material.diffuseTexture.vOffset -= measures[i].current[1] / 100;
+
       k += 0.05;
     }
   });
