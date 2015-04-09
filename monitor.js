@@ -1,21 +1,20 @@
-// Ce script permet de récupérer à intervalles réguliers les données de mesures SNMP
-// au format json depuis le serveur et de les afficher.
+// Ce script est le code du worker. Il tourne en parallèle du programme principal d'affichage.
+// Il se charge de récupérer les données de métrologie à intervalles réguliers sur le serveur.
 
 "use strict";
+
+// Référence au scope principal de ce thread
+var thisWorker = this;
 
 // Object responseJSON stockant les résultats parsés des requêtes au serveur
 // Cet objet permet surtout de passer une variable par référence à getJSON()
 var responseJSON = {};
 
 // variable globale data contenant les données actualisées du monitoring
-var data;            
+var dataW = {};            
 
 // var globale graph contenant les données de représentation du graphe
-var graph;                             
-
-
-// élement HTML
-var div_content;
+var graphW = {};   
 
 
 // fonction getJSON :
@@ -29,8 +28,8 @@ function getJSON(json_url, key, callback) {
   req.onreadystatechange = function() {
     if (req.readyState == 4 && req.status == 200) { 
       responseJSON[key] = JSON.parse(req.responseText); 
-      data = responseJSON["data"];
-      graph = responseJSON["graph"];
+      dataW = responseJSON["data"];
+      graphW = responseJSON["graph"];
       if( typeof callback == "function") { callback(); }
     }
   }
@@ -50,31 +49,35 @@ function getData(json_data_url, callback) {
   getJSON(json_data_url, "data", callback);
 }
 
+// function returnData
+// poste les variables globales de données dataW et graphW au thread principal
+function returnData() {
+  thisWorker.postMessage([dataW, graphW]);
+}
+
 // fonction monitor
 // lance la récupération des données à intervalles donnés
 function monitor(json_data_url, refresh_rate) {
-  setInterval(function(){ getData(json_data_url, "data"); }, refresh_rate*1000);
+  setInterval(function(){ getData(json_data_url, returnData); }, refresh_rate*1000);
 }
 
 
-// fonction init lancée sur window.onload
-function init() {
-  // variables de configuration
-  var worker_url = "monitor.js";                 // url du script code du webworker
-  var json_data_url = "monitor.json";            // url du fichier actualisé des données de mesure
-  var json_graph_url = "graph.json";             // url du fichier des données de description du graphe
-  var refresh_rate = 30;                         // délai de rafraichissement en secondes
+// Message reçus du script principal : [refresh_rate, json_data_url, json_graph_url]
+// récupération des données immédiate et programmée.
+thisWorker.onmessage = function(e) {
+  var refresh_rate = e.data[0];
+  var json_data_url = e.data[1];
+  var json_graph_url = e.data[2];
 
-  // creation du thread du webworker
-  var worker = new Worker(worker_url);
-  var started = false;
-  worker.onmessage = function(e) {
-    data = e.data[0];
-    if (e.data[1] && !started) {
-      graph = e.data[1];
-      started = true;
-      displayGraph(refresh_rate);
-    }
-  };
-  worker.postMessage([refresh_rate, json_data_url, json_graph_url]);
+  // on programme la récupération des données de monitoring à intervalles réguliers
+  monitor(json_data_url, refresh_rate);
+
+  // on récupére les premières données de monitoring et la description du graphe
+  // et on retourne les résultats au thread principal
+  getData(json_data_url, function() { 
+    getGraph(json_graph_url, function() { 
+        returnData();
+    }); 
+  });
 }
+

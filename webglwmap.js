@@ -1,6 +1,9 @@
 // Ce script se charge de toute la partie de rendu à partir des données récupérées
 // par le script weathermap.js
 
+"use strict";
+
+
 // variable globale devices : tableau des devices (logiques)
 var devices = {};
 
@@ -58,10 +61,10 @@ function createLinks(devices, links) {
   for ( var i in devices ) {
     var device_ifnames = devices[i].ifnames;
     // boucle sur les ifnames du device
-    for (ifname in device_ifnames) {
+    for (var ifname in device_ifnames) {
       // si le ifname a une destination (not null)
       if ( device_ifnames[ifname] != null ) {
-        lk = new Link(ifname, devices[i], devices[device_ifnames[ifname]]);
+        var lk = new Link(ifname, devices[i], devices[device_ifnames[ifname]]);
         links.push(lk);
         devices[i].link[ifname] = lk;
         //devices[i].txt_idx[ifname] = texture_index;
