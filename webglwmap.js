@@ -47,7 +47,7 @@ var colorLinkPointed = new BABYLON.Color3(1, 0.5, 0.5);
 // fonction createDevices()
 // crée les objets Device et les range dans le tableau devices
 function createDevices(devices) {
-  for(var i=0; i<graph.length; i++) {
+  for(var i = 0; i < graph.length; i++) {
     var dev = new Device(graph[i]["name"], graph[i]["type"], graph[i]["coord"],graph[i]["label"],graph[i]["ifnames"]);
     devices[graph[i]["name"]] = dev;
   }
@@ -117,6 +117,10 @@ var createScene = function(canvas, engine, refresh_rate) {
   light0.diffuse = new BABYLON.Color3(1, 1, 1);
   light0.specular = new BABYLON.Color3(1, 1, 1);
   light0.groundColor = new BABYLON.Color3(0, 0, 0);
+
+  var pl = new BABYLON.PointLight("pl", new BABYLON.Vector3(0, 0, 0), scene);
+  pl.diffuse = new BABYLON.Color3(1, 1, 1);
+  pl.intensity = 0.3;
 
   // axes pour le debug
   // showAxis(100, scene);
@@ -261,7 +265,7 @@ var createScene = function(canvas, engine, refresh_rate) {
 
   // logique de la render loop
   scene.registerBeforeRender(function() {
-    updateData(refresh_rate, 45);
+    updateData(refresh_rate, 2);
     updateGraph(scene, camera);
     for(var i = 0; i < meshLinks.length; i++) {
       /* tubes ondulants
@@ -280,6 +284,7 @@ var createScene = function(canvas, engine, refresh_rate) {
       meshLinksOut[i].material.diffuseTexture.vOffset -= measures[i].current[1] / 100;
 
       k += 0.05;
+      pl.position = camera.position;
     }
   });
 
@@ -325,7 +330,7 @@ function updateData(refresh_rate, frequency) {
     var dev = devices[res];
     var metrics = dev.metrics;
     var ifaces = data[res];
-    for (var i=0; i<ifaces.length; i++) {
+    for (var i=0; i < ifaces.length; i++) {
       var ifname = ifaces[i]["name"];
       var descr = ifaces[i]["descr"];
       var speed = ifaces[i]["speed"];
@@ -342,7 +347,7 @@ function updateData(refresh_rate, frequency) {
         metrics[ifname].last[1] = mbpsOut;
         metrics[ifname].current[0] = metrics[ifname].previous[0];
         metrics[ifname].current[1] = metrics[ifname].previous[1];
-        metrics[ifname].step = [ (metrics[ifname].last[0] - metrics[ifname].previous[0]) /prd , (metrics[ifname].last[1] - metrics[ifname].previous[1]) /prd ];
+        metrics[ifname].step = [ (metrics[ifname].last[0] - metrics[ifname].previous[0]) / prd , (metrics[ifname].last[1] - metrics[ifname].previous[1]) / prd ];
       }
       else {
         metrics[ifname].current[0] += metrics[ifname].step[0];
