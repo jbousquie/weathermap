@@ -98,6 +98,12 @@ var makeTextSprite = function(textTexture, size, scene) {
   return sprite;
 };
 
+// fonction immutable
+// empeche le recalcul de la worldMatrix du mesh pour optimisation
+var makeImmutable = function(mesh) {
+  mesh.freezeWorldMatrix();
+};
+
 
 // fonction createScene : dessin de tous les éléments visuels
 var createScene = function(canvas, engine, refresh_rate) {
@@ -157,6 +163,7 @@ var createScene = function(canvas, engine, refresh_rate) {
       deviceMesh.scaling.z  = 2.5;
       deviceMesh.rotation.y = Math.PI;
       meshDevices.push(deviceMesh);
+      makeImmutable(deviceMesh);
     }
     else {
       instanceMesh = deviceMesh.createInstance(deviceName);
@@ -164,6 +171,7 @@ var createScene = function(canvas, engine, refresh_rate) {
       instanceMesh.position.y = devices[i].y;
       instanceMesh.position.z = devices[i].z;
       meshDevices.push(instanceMesh);
+      makeImmutable(instanceMesh);
     }
     index ++;
     var labelSize = 80;
@@ -212,11 +220,13 @@ var createScene = function(canvas, engine, refresh_rate) {
     var curve3Out = BABYLON.Curve3.CreateQuadraticBezier(targetOut, middleOut, originOut, curveSegments);
     // tube : on done le même nom aux trois tubes pour le picking
     var linkName = prefNameLnk+i;
-    var linkMesh = BABYLON.Mesh.CreateTube(linkName, curve3.getPoints(), linkRadius, 8, null, scene);
+    var linkMesh = BABYLON.Mesh.CreateTube(linkName, curve3.getPoints(), linkRadius, 8, null, scene, false);
     linkMesh.material = linkMat;
     var linkMeshIn = BABYLON.Mesh.CreateTube(linkName, curve3In.getPoints(), linkRadius / 4, 8, null, scene, true);
     var linkMeshOut = BABYLON.Mesh.CreateTube(linkName, curve3Out.getPoints(), linkRadius / 4 , 8, null, scene, true);
-    
+
+    makeImmutable(linkMeshIn);
+    makeImmutable(linkMeshOut);
 
     var linkMatIN = new BABYLON.StandardMaterial("LinkMaterialIn", scene);
     var linkMatOUT= new BABYLON.StandardMaterial("LinkMaterialOut", scene);
@@ -262,6 +272,10 @@ var createScene = function(canvas, engine, refresh_rate) {
   //var indexMeasure = 0;
 
   var k = 0;
+  var radiusIn = 0.0;
+  var radiusOut = 0.0;
+  var lastRadiusIn = radiusIn;
+  var lastRadiusOut = radiusOut;
 
   // logique de la render loop
   scene.registerBeforeRender(function() {
@@ -275,11 +289,19 @@ var createScene = function(canvas, engine, refresh_rate) {
       meshLinksOut[i] = BABYLON.Mesh.CreateTube(null, pathMeshOut[i], null, null, radiusFunctionOut, null, null, null, meshLinksOut[i]);
       */
 
-      var radiusIn = 1 + measures[i].rate[0] * linkRadius / 2;
-      var radiusOut = 1 + measures[i].rate[1] * linkRadius / 2;
+      radiusIn = 1 + measures[i].rate[0] * linkRadius / 2;
+      radiusOut = 1 + measures[i].rate[1] * linkRadius / 2;
 
-      meshLinksIn[i] = BABYLON.Mesh.CreateTube(null, pathMeshIn[i], radiusIn, null, null, null, null, null, meshLinksIn[i]);
-      meshLinksOut[i] = BABYLON.Mesh.CreateTube(null, pathMeshOut[i], radiusOut, null, null, null, null, null, meshLinksOut[i]);
+      // le morphing du tube (createTube) consomme la CPU
+
+      if (radiusIn != lastRadiusIn ) {
+        //meshLinksIn[i] = BABYLON.Mesh.CreateTube(null, pathMeshIn[i], radiusIn, null, null, null, null, null, meshLinksIn[i]);
+        lastRadiusIn = radiusIn;
+      }
+      if (radiusOut != lastRadiusOut) {
+        //meshLinksOut[i] = BABYLON.Mesh.CreateTube(null, pathMeshOut[i], radiusOut, null, null, null, null, null, meshLinksOut[i]);
+        lastRadiusOut = radiusOut;
+      }
       meshLinksIn[i].material.diffuseTexture.vOffset -= measures[i].current[0] / 100;
       meshLinksOut[i].material.diffuseTexture.vOffset -= measures[i].current[1] / 100;
 
